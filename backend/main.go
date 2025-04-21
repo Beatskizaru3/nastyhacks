@@ -1,28 +1,41 @@
 package main
 
-import "github.com/gin-gonic/gin"
+import (
+	"filesharing/backend/admin"
+	"filesharing/backend/handlers"
+	"filesharing/backend/middleware"
+
+	"github.com/gin-contrib/cors" // ← импортируем
+	"github.com/gin-gonic/gin"
+	_ "github.com/lib/pq"
+)
 
 func main() {
 	router := gin.Default()
 
-	router.GET("/files", func(c *gin.Context) {
-		//получаемв ответ полный список файлов
-		var request string
-		c.ShouldBindJSON(&request)
+	// === CORS ===
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:3000"}, // откуда приходят запросы
+		AllowMethods:     []string{"GET", "POST", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+	}))
 
-		c.JSON(200, gin.H{"response": request})
-	})
+	// === Твои роуты ===
+	auth := router.Group("/admin", middleware.AuthAdminMiddleWare())
+	auth.POST("/upload", admin.UpLoadFileHandler)
+	auth.PATCH("/files/:id", handlers.UpdateByIDHandler)
+	auth.DELETE("/files/:id", handlers.DeleteFileHandler)
+	auth.POST("/register", admin.RegisterHandler)
 
-	router.GET("/files/:filename??", func(ctx *gin.Context) {
-		//из тела запроса считывалось какой айдишник файла
-		//и затем искало файл по айди и скачивало
+	router.POST("/login", admin.LoginUserHandler)
+	router.GET("/files", handlers.GetAllFilesHandler)
+	router.GET("/files/:id", handlers.GetFileHandler)
+	router.GET("/downloads/:id", handlers.DownloadByIDHandler)
 
-	})
-	router.POST("/upload", func(ctx *gin.Context) {
+	// Статика
+	router.Static("/uploads", "./uploads")
 
-		//считывало тело запроса, распаршивало его в структуру с биндами
-		//и затем сохраняло поле из структуры в папку отдельную
-		//файл должен иметь свой уникальный айли для того чтобы юзеры могли его скачать
-	})
-	router.Run()
+	router.Run(":8082")
 }
