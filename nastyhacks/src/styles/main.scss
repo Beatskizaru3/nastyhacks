@@ -1,0 +1,171 @@
+ @import './media.scss';
+ 
+ .main{
+
+    &__top{
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-left: 10px;
+        padding-right: 10px;
+
+        &-title{
+            font-size: 36px;
+        }
+
+        &-filter{
+            display: flex;
+            column-gap: 5px;
+            img{
+                width: 24px;
+                height: 24px;
+            }
+        }
+    }
+
+    &__card{
+        justify-self: center;
+        &-img{
+            object-fit: cover;
+        }
+        white-space: normal;
+        max-width: 476px;
+        @include below-desktop-wide{
+            width: 390px;
+            img{
+                height: 256px;
+            }
+        }
+        @include below-desktop{
+            width: 305px;
+            img{
+                height: 256px;
+            }
+        }
+        @include below-tablet{
+            width: 220px;
+            img{
+                height: 144px;
+            }
+        }
+        @include below-small-tablet{
+            width: 100%;
+            img{
+                height: auto;
+                
+            }
+        }
+
+       
+
+        &-body{
+            display: flex;
+            flex-direction: column;
+            row-gap: 5px;
+            padding: 30px;
+
+            @include below-desktop{
+                padding: 25px;
+            }
+
+            @include below-tablet{
+                padding: 20px;
+            }
+
+            @include below-small-tablet{
+                padding: 15px;
+            }
+        }
+
+        &-title{
+            font-size: 22px;
+        }
+
+        &-description{
+            white-space: nowrap; /* Текст не переносится на новую строку */
+      overflow: hidden; /* Скрывает переполненный текст */
+      text-overflow: ellipsis; /* Добавляет многоточие при обрезке */
+      font-size: 18px;
+
+        }
+
+        &-additional{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 18px;
+            
+
+            button{
+                display: flex;
+                align-items: center;
+                background: none;
+                border: none;
+                margin: 0;
+                padding: 0;
+                font: inherit;
+                color: inherit;
+                cursor: pointer;
+                outline: none;
+                &::after {
+                    align-self: center;
+                    content: '';
+                    display: inline-block;
+                    background: url('../../public/svg/arrow-right.svg') no-repeat center center;
+                    background-size: contain;
+                    height: 20px;
+                    width: 20px;
+                    margin-left: 5px;
+                    /* Добавляем фильтр для изменения цвета SVG, если оно белое */
+                    filter: invert(0%) sepia(0%) saturate(0%) hue-rotate(0deg) brightness(0%) contrast(100%); /* Делает SVG чёрным */
+                  }
+            }
+        }
+
+        &-stat{
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            column-gap: 5px;
+            white-space: wrap;
+
+            &-downloads {
+                position: relative;
+        
+                &::after {
+                  content: '|'; /* Вертикальная черта как разделитель */
+                  margin-left: 5px; /* Отступ слева */
+                  color: #000; /* Чёрный цвет для видимости */
+                }
+              }
+        }
+    }
+
+    &__cards{
+        width: 100%;
+        display: grid;
+        column-gap: 4%;
+        grid-template-columns: repeat(3, 1fr);
+        
+        @include below-small-tablet{
+            grid-template-columns: 1fr;
+        }
+    }
+
+    &__load-button{
+        width: 100%;
+        border: none;
+        background: transparent;
+        padding: 0;
+        margin: 0;
+        font-size: inherit;
+        cursor: inherit; 
+
+        font-size: 20px;
+        color: white;
+        padding: 0.5em;
+        border-radius: 0.25rem;
+        border: 1px solid darkblue;
+        background-color: rgb(0, 0, 78);
+    }
+ }

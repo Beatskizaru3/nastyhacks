@@ -1,0 +1,26 @@
+@use './media' as *; // импортируем всё
+
+.container {
+    max-width: 1537px;
+    width: 100%;
+    margin: auto;
+    @include below-desktop-wide{
+        width: 1282px;
+    }
+
+    @include below-desktop{
+        width: 1025px;
+    }
+
+    @include below-tablet{
+        width: 769px;
+    }
+
+    @include below-small-tablet{
+        width: 641px;
+    }
+
+    @include mobile{
+        max-width: 640px;
+    }
+}
