@@ -1,0 +1,60 @@
+@import './media.scss';
+
+.stat{
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+
+    &__blocks{
+        justify-content: center;
+        align-items: center;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr); // 4 равные колонки
+        gap: 20px; // равномерные отступы между ними
+        
+        @include below-small-tablet{
+            grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+        }
+
+        @include mobile{
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        &-img{
+            width: 48px;
+            height: 48px;
+        }
+
+        &-dashboard{
+            @include mobile{
+                width: 100%;
+            }
+            padding: 20px;
+            border: 1px solid blueviolet;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            
+        }
+    }
+
+    &__inTouch{
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        row-gap: 10px;
+
+        margin-top: 20px;
+        padding: 20px;
+        border: 1px solid blueviolet;
+        border-radius: 10px;
+    }
+   
+}

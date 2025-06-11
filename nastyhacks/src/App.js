@@ -4,6 +4,7 @@ import './styles/media.scss';
 import './styles/utility.scss';
 import './styles/main.scss';
 import './styles/header.scss';
+import './styles/stat.scss';
 
 import Header from './components/Header';
 
@@ -146,6 +147,38 @@ function App() {
       </section>
       <button className="main__load-button">Load More</button>
    </main>
+   <section className="stat container">
+      <h2 className="stat__title">Our Modest Statistics
+      </h2>
+      <p className="stat__description">Thank you for being a part of our community and contributing to these figures. Together, we are making an impact!</p>
+      <div className="stat__blocks">
+        <div className="stat__blocks-dashboard">
+          <img src="/svg/download.svg" alt="" className='stat__blocks-img'/>
+          <h3 className="stat__blocks-counter">5.5M</h3>
+          <p className="stat__blocks-description">Downloads</p>
+        </div>
+        <div className="stat__blocks-dashboard">
+          <img src="/svg/upload.svg" alt="" className='stat__blocks-img'/>
+          <h3 className="stat__blocks-counter">2.1K</h3>
+          <p className="stat__blocks-description">Uploads</p>
+        </div>
+        <div className="stat__blocks-dashboard">
+          <img src="/svg/users.svg" alt="" className='stat__blocks-img'/>
+          <h3 className="stat__blocks-counter">76.2K</h3>
+          <p className="stat__blocks-description">Users</p>
+        </div>
+        <div className="stat__blocks-dashboard">
+          <img src="/svg/online.svg" alt="" className='stat__blocks-img'/>
+          <h3 className="stat__blocks-counter">79</h3>
+          <p className="stat__blocks-description">Online</p>
+        </div>
+      </div>
+      <div className="stat__inTouch">
+        <h3>Get in Touch</h3>
+        <p>We value your feedback and suggestions. If you have something to say or any questions to ask, don't hesitate to reach out to us! Your input is essential in making our platform better for everyone.</p>
+        <button>Send Message</button>
+      </div>
+   </section>
   </>
     
 
