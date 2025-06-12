@@ -154,7 +154,7 @@ function App() {
       <p className="stat__description">Thank you for being a part of our community and contributing to these figures. Together, we are making an impact!</p>
       <div className="stat__blocks">
         <div className="stat__blocks-dashboard">
-          <img src="public/svg/download.svg" alt="" className='stat__blocks-img'/>
+          <img src="./public/svg/download.svg" alt="" className='stat__blocks-img'/>
           <h3 className="stat__blocks-counter">5.5M</h3>
           <p className="stat__blocks-description">Downloads</p>
         </div>
