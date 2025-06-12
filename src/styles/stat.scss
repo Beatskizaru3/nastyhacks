@@ -1,4 +1,5 @@
 @import './media.scss';
+@import '../index.scss';
 
 .stat{
     margin-top: 20px;
@@ -33,8 +34,13 @@
         }
 
         &-img{
-            width: 48px;
+            svg{
+                width: 48px;
             height: 48px;
+            color: $color-accent2;
+            
+            }
+            
         }
 
         &-dashboard{
@@ -42,7 +48,7 @@
                 width: 100%;
             }
             padding: 20px;
-            border: 1px solid blueviolet;
+            border: 1px solid $color-accent;
             border-radius: 10px;
             display: flex;
             flex-direction: column;
@@ -67,6 +73,7 @@
 
 
         button{
+            all: unset;
             display: flex;
             flex-direction: row;
             column-gap: 10px;
@@ -76,14 +83,19 @@
             align-items: center;
             text-transform: uppercase;
             white-space: pre;
-            img{
+            border-radius: 20px;
+            border: 2px solid $color-accent;
+            color: $color-text;
+            background-color: $color-bg-soft;
+            svg{
+                color: $color-accent2;
                 width: 24px;
                 height: 24px;
             }
         }
         
         
-        border: 1px solid blueviolet;
+        border: 1px solid $color-accent;
         border-radius: 10px;
     }
    

@@ -1,4 +1,5 @@
 @import './media.scss';
+@import '../index.scss';
 
 .header {
     margin-top: 20px !important;
@@ -8,6 +9,16 @@
     @include below-small-tablet{
         flex-direction: column;
         row-gap: 15px;
+    }
+
+    &__logo{
+        display: flex;
+        svg{
+            width: 24px;
+            height: 24px;
+            color: $color-accent2;
+            align-self: center;
+        }
     }
 
     justify-content: space-between;
@@ -63,10 +74,11 @@
     &__search{
         display: flex;
         align-items: center;
-        border: 1px solid grey;
+        border: 1px solid $color-accent;
         border-radius: 10px;
         padding: 0 15px;
         &-input{
+            background-color: $color-bg-soft;
             border: 0;
             padding: 13px;
             &:focus{
@@ -74,9 +86,12 @@
             }
         }
         &-icon{
-            img{
+            svg{
+                display: flex;
                 width: 24px;
                 height: 24px;
+                color: $color-accent2;
+                align-self: center;
             }
         }
     }
@@ -84,9 +99,10 @@
     &__profile{
         display: flex;
         align-items: center;
-        img{
+        svg{
             width: 24px;
             height: 24px;
+            color: $color-accent2;
         }
     }
 
