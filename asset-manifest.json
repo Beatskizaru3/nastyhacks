@@ -1,14 +1,14 @@
 {
   "files": {
     "main.css": "/nastyhacks/static/css/main.e2b99820.css",
-    "main.js": "/nastyhacks/static/js/main.1d1758fd.js",
+    "main.js": "/nastyhacks/static/js/main.ae8d90f0.js",
     "index.html": "/nastyhacks/index.html",
     "static/media/arrow-right.svg": "/nastyhacks/static/media/arrow-right.d2808eb85693290ec79f.svg",
     "main.e2b99820.css.map": "/nastyhacks/static/css/main.e2b99820.css.map",
-    "main.1d1758fd.js.map": "/nastyhacks/static/js/main.1d1758fd.js.map"
+    "main.ae8d90f0.js.map": "/nastyhacks/static/js/main.ae8d90f0.js.map"
   },
   "entrypoints": [
     "static/css/main.e2b99820.css",
-    "static/js/main.1d1758fd.js"
+    "static/js/main.ae8d90f0.js"
   ]
 }
