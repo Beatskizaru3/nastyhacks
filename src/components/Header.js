@@ -3,7 +3,7 @@ function Header(){
         <header className='header container'>
         <div className="header__left">
           <div className="header__logo">
-            <img src="/svg/logo.svg" alt="" />
+            <img src="svg/logo.svg" alt="" />
           </div>
             <div className="header__name">Script RB</div> 
           <nav className="header__nav">
