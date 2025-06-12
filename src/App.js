@@ -16,7 +16,7 @@ function App() {
    <main className='main container'>
       <div className="main__top">
         <h1 className="main__top-title">Found Posts</h1>
-        <div className="main__top-filter">Filter<img src='public/svg/filter.svg' alt=""/></div>
+        <div className="main__top-filter">Filter<img src='svg/filter.svg' alt=""/></div>
       </div>
       <section className="main__cards">
         <div className="main__card">
@@ -154,22 +154,22 @@ function App() {
       <p className="stat__description">Thank you for being a part of our community and contributing to these figures. Together, we are making an impact!</p>
       <div className="stat__blocks">
         <div className="stat__blocks-dashboard">
-          <img src="./public/svg/download.svg" alt="" className='stat__blocks-img'/>
+          <img src="svg/download.svg" alt="" className='stat__blocks-img'/>
           <h3 className="stat__blocks-counter">5.5M</h3>
           <p className="stat__blocks-description">Downloads</p>
         </div>
         <div className="stat__blocks-dashboard">
-          <img src="public/svg/upload.svg" alt="" className='stat__blocks-img'/>
+          <img src="svg/upload.svg" alt="" className='stat__blocks-img'/>
           <h3 className="stat__blocks-counter">2.1K</h3>
           <p className="stat__blocks-description">Uploads</p>
         </div>
         <div className="stat__blocks-dashboard">
-          <img src="public/svg/users.svg" alt="" className='stat__blocks-img'/>
+          <img src="svg/users.svg" alt="" className='stat__blocks-img'/>
           <h3 className="stat__blocks-counter">76.2K</h3>
           <p className="stat__blocks-description">Users</p>
         </div>
         <div className="stat__blocks-dashboard">
-          <img src="public/svg/online.svg" alt="" className='stat__blocks-img'/>
+          <img src="svg/online.svg" alt="" className='stat__blocks-img'/>
           <h3 className="stat__blocks-counter">79</h3>
           <p className="stat__blocks-description">Online</p>
         </div>
