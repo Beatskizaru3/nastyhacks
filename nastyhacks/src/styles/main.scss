@@ -2,13 +2,14 @@
  
  .main{
 
+    position: relative;
     &__top{
         display: flex;
         justify-content: space-between;
         align-items: center;
         padding-left: 10px;
         padding-right: 10px;
-
+        margin-bottom: 15px;
         &-title{
             font-size: 36px;
         }
@@ -25,6 +26,7 @@
 
     &__card{
         justify-self: center;
+        min-width: 0;
         &-img{
             object-fit: cover;
         }
@@ -49,11 +51,17 @@
             }
         }
         @include below-small-tablet{
+            max-width: 100%;
             width: 100%;
             img{
+                width: 100%;
                 height: auto;
                 
             }
+
+        @include mobile{
+
+        }
         }
 
        
@@ -63,6 +71,8 @@
             flex-direction: column;
             row-gap: 5px;
             padding: 30px;
+            position: relative;
+            min-width: 0;
 
             @include below-desktop{
                 padding: 25px;
@@ -83,9 +93,11 @@
 
         &-description{
             white-space: nowrap; /* Текст не переносится на новую строку */
-      overflow: hidden; /* Скрывает переполненный текст */
-      text-overflow: ellipsis; /* Добавляет многоточие при обрезке */
-      font-size: 18px;
+            overflow: hidden; /* Скрывает переполненный текст */
+            text-overflow: ellipsis; /* Добавляет многоточие при обрезке */
+            font-size: 18px;
+            display: block;
+            max-width: 100%;
 
         }
 
@@ -142,7 +154,7 @@
     }
 
     &__cards{
-        width: 100%;
+        max-width: 100%;
         display: grid;
         column-gap: 4%;
         grid-template-columns: repeat(3, 1fr);

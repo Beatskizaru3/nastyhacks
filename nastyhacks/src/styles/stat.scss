@@ -6,6 +6,14 @@
     flex-direction: column;
     text-align: center;
 
+    &__title{
+        margin-bottom: 15px;
+    }
+
+    &__description{
+        margin-bottom: 50px;
+    }
+
     &__blocks{
         justify-content: center;
         align-items: center;
@@ -45,14 +53,36 @@
     }
 
     &__inTouch{
+        margin-top: 20px;
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
         row-gap: 10px;
+        padding: 30px 50px;
+        h3{
+            margin: 0;
+            font-size: 36px;
+        }
 
-        margin-top: 20px;
-        padding: 20px;
+
+        button{
+            display: flex;
+            flex-direction: row;
+            column-gap: 10px;
+            padding: 5px 10px;
+            font-size: 24px;
+            justify-content: center;
+            align-items: center;
+            text-transform: uppercase;
+            white-space: pre;
+            img{
+                width: 24px;
+                height: 24px;
+            }
+        }
+        
+        
         border: 1px solid blueviolet;
         border-radius: 10px;
     }

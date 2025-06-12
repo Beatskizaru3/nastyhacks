@@ -17,7 +17,10 @@
     }
 
     @include below-small-tablet{
-        width: 641px;
+        width: auto;
+        max-width: 99vw;
+        padding-left: 10px;
+        padding-right: 10px;
     }
 
     @include mobile{

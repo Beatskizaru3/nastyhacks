@@ -5,6 +5,7 @@ import './styles/utility.scss';
 import './styles/main.scss';
 import './styles/header.scss';
 import './styles/stat.scss';
+import './styles/footer.scss';
 
 import Header from './components/Header';
 
@@ -176,9 +177,16 @@ function App() {
       <div className="stat__inTouch">
         <h3>Get in Touch</h3>
         <p>We value your feedback and suggestions. If you have something to say or any questions to ask, don't hesitate to reach out to us! Your input is essential in making our platform better for everyone.</p>
-        <button>Send Message</button>
+        <button>Send Message <img src='svg/telegram.svg' alt=""></img></button>
       </div>
    </section>
+   <footer className="footer container">
+    <p className="footer__creds">Made with ❤ by boundless_sv for ScriptRB. All rights reserved.</p>
+    <div className="footer__useful">
+      <span><a href="#">Privacy Policy</a></span>
+      <span><a href="#">Type of Service</a></span>
+    </div>
+   </footer>
   </>
     
 
