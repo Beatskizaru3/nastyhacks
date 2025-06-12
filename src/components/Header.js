@@ -18,11 +18,11 @@ function Header(){
           <div className="header__search">
             <input type="text" className="header__search-input" />
             <div className="header__search-icon">
-              <img src="/svg/search.svg" alt="" />
+              <img src="svg/search.svg" alt="" />
             </div>
           </div>
           <div className="header__profile">
-            <img src="/svg/profile.svg" alt="" />
+            <img src="svg/profile.svg" alt="" />
           </div>
         </div>
      </header>
