@@ -6,150 +6,17 @@ import './styles/main.scss';
 import './styles/header.scss';
 import './styles/stat.scss';
 import './styles/footer.scss';
-
 import Header from './components/Header';
+import Cards from './components/Cards';
+
 
 function App() {
+
+  
   return (
   <>
     <Header/>
-   <main className='main container'>
-      <div className="main__top">
-        <h1 className="main__top-title">Found Posts</h1>
-        <div className="main__top-filter">Filter<svg width="800px" height="800px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M6 12H18M3 6H21M9 18H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-</svg></div>
-      </div>
-      <section className="main__cards">
-        <div className="main__card">
-          <img src="https://scriptrb.com/cdn-cgi/image/medium-low,format=auto,height=420/https://scriptrb.com/img/uploads/684692b90d5e1_106989035172456074720.webp" alt="" className="main__card-img" />
-          <div className="main__card-body">
-            <div className="main__card-title">Factory RNG</div>
-            <p className="main__card-description">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Praesentium, exercitationem explicabo nisi aut laborum veritatis ad velit nihil sunt aliquam inventore a nulla mollitia quae, minus accusamus animi eos et.</p>
-            <div className="main__card-additional">
-              <button>View</button>
-              <div className="main__card-stat">
-                <p className="main__card-stat-downloads">131</p>
-                <p className="main__card-stat-date">09.06.2025</p>
-              </div>
-            </div>
-            </div>
-          </div>
-          <div className="main__card">
-          <img src="https://scriptrb.com/cdn-cgi/image/medium-low,format=auto,height=420/https://scriptrb.com/img/uploads/684692b90d5e1_106989035172456074720.webp" alt="" className="main__card-img" />
-          <div className="main__card-body">
-            <div className="main__card-title">Factory RNG</div>
-            <p className="main__card-description">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Praesentium, exercitationem explicabo nisi aut laborum veritatis ad velit nihil sunt aliquam inventore a nulla mollitia quae, minus accusamus animi eos et.</p>
-            <div className="main__card-additional">
-              <button>View</button>
-              <div className="main__card-stat">
-                <p className="main__card-stat-downloads">131</p>
-                <p className="main__card-stat-date">09.06.2025</p>
-              </div>
-            </div>
-            </div>
-          </div>
-          <div className="main__card">
-          <img src="https://scriptrb.com/cdn-cgi/image/medium-low,format=auto,height=420/https://scriptrb.com/img/uploads/684692b90d5e1_106989035172456074720.webp" alt="" className="main__card-img" />
-          <div className="main__card-body">
-            <div className="main__card-title">Factory RNG</div>
-            <p className="main__card-description">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Praesentium, exercitationem explicabo nisi aut laborum veritatis ad velit nihil sunt aliquam inventore a nulla mollitia quae, minus accusamus animi eos et.</p>
-            <div className="main__card-additional">
-              <button>View</button>
-              <div className="main__card-stat">
-                <p className="main__card-stat-downloads">131</p>
-                <p className="main__card-stat-date">09.06.2025</p>
-              </div>
-            </div>
-            </div>
-          </div>
-          <div className="main__card">
-          <img src="https://scriptrb.com/cdn-cgi/image/medium-low,format=auto,height=420/https://scriptrb.com/img/uploads/684692b90d5e1_106989035172456074720.webp" alt="" className="main__card-img" />
-          <div className="main__card-body">
-            <div className="main__card-title">Factory RNG</div>
-            <p className="main__card-description">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Praesentium, exercitationem explicabo nisi aut laborum veritatis ad velit nihil sunt aliquam inventore a nulla mollitia quae, minus accusamus animi eos et.</p>
-            <div className="main__card-additional">
-              <button>View</button>
-              <div className="main__card-stat">
-                <p className="main__card-stat-downloads">131</p>
-                <p className="main__card-stat-date">09.06.2025</p>
-              </div>
-            </div>
-            </div>
-          </div>
-          <div className="main__card">
-          <img src="https://scriptrb.com/cdn-cgi/image/medium-low,format=auto,height=420/https://scriptrb.com/img/uploads/684692b90d5e1_106989035172456074720.webp" alt="" className="main__card-img" />
-          <div className="main__card-body">
-            <div className="main__card-title">Factory RNG</div>
-            <p className="main__card-description">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Praesentium, exercitationem explicabo nisi aut laborum veritatis ad velit nihil sunt aliquam inventore a nulla mollitia quae, minus accusamus animi eos et.</p>
-            <div className="main__card-additional">
-              <button>View</button>
-              <div className="main__card-stat">
-                <p className="main__card-stat-downloads">131</p>
-                <p className="main__card-stat-date">09.06.2025</p>
-              </div>
-            </div>
-            </div>
-          </div>
-          <div className="main__card">
-          <img src="https://scriptrb.com/cdn-cgi/image/medium-low,format=auto,height=420/https://scriptrb.com/img/uploads/684692b90d5e1_106989035172456074720.webp" alt="" className="main__card-img" />
-          <div className="main__card-body">
-            <div className="main__card-title">Factory RNG</div>
-            <p className="main__card-description">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Praesentium, exercitationem explicabo nisi aut laborum veritatis ad velit nihil sunt aliquam inventore a nulla mollitia quae, minus accusamus animi eos et.</p>
-            <div className="main__card-additional">
-              <button>View</button>
-              <div className="main__card-stat">
-                <p className="main__card-stat-downloads">131</p>
-                <p className="main__card-stat-date">09.06.2025</p>
-              </div>
-            </div>
-            </div>
-          </div>
-          <div className="main__card">
-          <img src="https://scriptrb.com/cdn-cgi/image/medium-low,format=auto,height=420/https://scriptrb.com/img/uploads/684692b90d5e1_106989035172456074720.webp" alt="" className="main__card-img" />
-          <div className="main__card-body">
-            <div className="main__card-title">Factory RNG</div>
-            <p className="main__card-description">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Praesentium, exercitationem explicabo nisi aut laborum veritatis ad velit nihil sunt aliquam inventore a nulla mollitia quae, minus accusamus animi eos et.</p>
-            <div className="main__card-additional">
-              <button>View</button>
-              <div className="main__card-stat">
-                <p className="main__card-stat-downloads">131</p>
-                <p className="main__card-stat-date">09.06.2025</p>
-              </div>
-            </div>
-            </div>
-          </div>
-          <div className="main__card">
-          <img src="https://scriptrb.com/cdn-cgi/image/medium-low,format=auto,height=420/https://scriptrb.com/img/uploads/684692b90d5e1_106989035172456074720.webp" alt="" className="main__card-img" />
-          <div className="main__card-body">
-            <div className="main__card-title">Factory RNG</div>
-            <p className="main__card-description">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Praesentium, exercitationem explicabo nisi aut laborum veritatis ad velit nihil sunt aliquam inventore a nulla mollitia quae, minus accusamus animi eos et.</p>
-            <div className="main__card-additional">
-              <button>View</button>
-              <div className="main__card-stat">
-                <p className="main__card-stat-downloads">131</p>
-                <p className="main__card-stat-date">09.06.2025</p>
-              </div>
-            </div>
-            </div>
-          </div>
-          <div className="main__card">
-          <img src="https://scriptrb.com/cdn-cgi/image/medium-low,format=auto,height=420/https://scriptrb.com/img/uploads/684692b90d5e1_106989035172456074720.webp" alt="" className="main__card-img" />
-          <div className="main__card-body">
-            <div className="main__card-title">Factory RNG</div>
-            <p className="main__card-description">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Praesentium, exercitationem explicabo nisi aut laborum veritatis ad velit nihil sunt aliquam inventore a nulla mollitia quae, minus accusamus animi eos et.</p>
-            <div className="main__card-additional">
-              <button>View</button>
-              <div className="main__card-stat">
-                <p className="main__card-stat-downloads">131</p>
-                <p className="main__card-stat-date">09.06.2025</p>
-              </div>
-            </div>
-            </div>
-          </div>
-      </section>
-      <button className="main__load-button">Load More</button>
-   </main>
+    <Cards/>
    <section className="stat container">
       <h2 className="stat__title">Our Modest Statistics
       </h2>
