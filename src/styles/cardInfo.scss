@@ -1,0 +1,39 @@
+@import './variables.scss';
+
+.cardInfo{
+    display: flex;
+    width: 100%;
+    flex-direction: row;
+
+    &__image{
+        width: 50%;
+    }
+     &__body{
+        width: 50%;
+        display: flex; 
+        flex-direction: column;
+        align-items: start;
+        justify-content: center;
+    }
+    &__title{
+        font-size: 2.25rem;
+    }
+
+    &__description{
+
+    }
+
+    &__stats{
+        display: flex;
+        flex-direction: row;
+
+        &-downloads{
+
+            &::after {
+                content: '|'; /* Вертикальная черта как разделитель */
+                margin-left: 5px; /* Отступ слева */
+                color: $color-accent2;
+              }
+        }
+    }
+}
