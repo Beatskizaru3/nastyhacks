@@ -5,11 +5,13 @@ function Card(props){
         <div className="main__card">
             <img src={props.img} alt="" className="main__card-img" />
             <div className="main__card-body">
-              <div className="main__card-title">{props.title}</div>
-              <p className="main__card-description">{props.description}</p>
+              <div>
+                <div className="main__card-title">{props.title}</div>
+                <p className="main__card-description">{props.description}</p>
+              </div>
               <div className="main__card-additional">
                 <Link to={`/card/${props.id}`}>
-                    <button>View</button>
+                    <button>Download</button>
                 </Link>
                 <div className="main__card-stat">
                   <svg width="24px" height="24px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

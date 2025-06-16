@@ -81,6 +81,10 @@
         border: 2px solid $color-accent;
         background-color: $color-card;
         box-shadow:  $shadow;
+        display: flex;
+        flex-direction: column;
+        justify-content: start;
+        
         &-img{
             object-fit: cover;
             border-radius: 30px 30px 0 0;
@@ -114,6 +118,7 @@
         &-body{
             display: flex;
             flex-direction: column;
+            justify-content: space-between;
             row-gap: 5px;
             padding: 30px;
             position: relative;
@@ -130,10 +135,12 @@
             @include below-small-tablet{
                 padding: 15px;
             }
+            
         }
 
         &-title{
             font-size: 22px;
+            height: 3em;
         }
 
         &-description{
@@ -160,12 +167,14 @@
             }
             a{
                 text-decoration: none;
+                font-weight: 700;
+                color: black;
             }
-            button{
-                
-                display: flex !important;
-                align-items: center !important;
-                justify-content: center !important; 
+            button {
+                position: relative;
+                display: flex; /* Кнопка всегда flex, чтобы выровнять контент и стрелку */
+                align-items: center;
+                justify-content: center;
                 border-radius: 10px;
                 background: $color-accent;
                 border: none;
@@ -175,19 +184,37 @@
                 color: inherit;
                 cursor: pointer;
                 outline: none;
-                &::after {
-                    align-self: center;
-                    content: '';
-                    display: inline-block;
-                    background: url('../../public/svg/arrow-right.svg') no-repeat center center;
-                    background-size: contain;
                 
-                    height: 20px;
-                    width: 20px;
-                    margin-left: 5px;
-                    /* Добавляем фильтр для изменения цвета SVG, если оно белое */
+            
+                // &::after {
+                //     position: absolute;
+                //     right: -1.6rem;
+                //     content: '';
+                //     display: inline-block; /* Или block, в зависимости от нужного выравнивания */
+                //     background: url('../../public/svg/arrow-right.svg') no-repeat center center;
+                //     background-size: contain;
+                //     height: 20px;
+                //     width: 20px;
+                //     margin-left: 5px;
                     
-                  }
+                //     /* Начальное состояние стрелки: скрыта и смещена */
+                //     transform: translateX(-10px); /* Смещаем влево, чтобы "выдвигалась" */
+                //     opacity: 0; /* Скрываем стрелку */
+            
+                //     /* Плавный переход для смещения и прозрачности */
+                //     transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+            
+                   
+                // }
+            
+                &:hover {
+                    background: darken($color-accent, 10%); /* Меняем фон при наведении для эффекта */
+            
+                    &::after {
+                        transform: translateX(0); /* Возвращаем стрелку на исходную позицию (выдвигаем) */
+                        opacity: 1; /* Показываем стрелку */
+                    }
+                }
             }
         }
 
