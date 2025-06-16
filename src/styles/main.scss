@@ -76,7 +76,6 @@
     }
 
     &__card{
-        justify-self: center;
         min-width: 0;
         border-radius: 30px;
         border: 2px solid $color-accent;
@@ -209,9 +208,13 @@
     &__cards{
         max-width: 100%;
         display: grid;
+        column-gap: 40px;
         row-gap: 40px;
         grid-template-columns: repeat(3, 1fr);
-        
+        @include below-desktop-wide{
+            
+            column-gap: normal;
+        }
         @include below-small-tablet{
             grid-template-columns: 1fr;
         }
