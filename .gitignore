@@ -1,0 +1,24 @@
+# Node modules
+node_modules/
+
+# build folder
+build/
+
+# cache folder
+.cache/
+
+# other common ignores for web projects (you might have more)
+.env
+.DS_Store
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+coverage/
+dist/
+tmp/
+*.log
+*.zip
+*.tar.gz
+*.rar
+.idea/ # For WebStorm/IntelliJ
+.vscode/ # For VS Code
