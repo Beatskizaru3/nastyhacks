@@ -158,14 +158,19 @@
             @include below-small-tablet{
                 flex-direction: row;
             }
-
+            a{
+                text-decoration: none;
+            }
             button{
-                display: flex;
-                align-items: center;
-                background: none;
+                
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important; 
+                border-radius: 10px;
+                background: $color-accent;
                 border: none;
                 margin: 0;
-                padding: 0;
+                padding: 5px 10px;
                 font: inherit;
                 color: inherit;
                 cursor: pointer;
@@ -227,7 +232,7 @@
         padding: 0;
         margin: 0;
         font-size: inherit;
-        cursor: inherit; 
+        cursor: pointer; 
 
         margin-top: 20px;
         font-size: 20px;
@@ -236,5 +241,12 @@
         border-radius: 0.25rem;
         border: 1px solid $color-accent;
         background-color: $color-accent;
+
+        transition: background-color 0.3s ease; /* Smooth transition */
+            &:hover{
+                background-color: $color-bg;
+                color: white;
+                
+            }
     }
  }

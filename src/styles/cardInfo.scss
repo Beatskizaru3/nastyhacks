@@ -1,19 +1,52 @@
+@use './media.scss' as *;
 @import './variables.scss';
+
 
 .cardInfo{
     display: flex;
     width: 100%;
     flex-direction: row;
+    column-gap: 40px;
+    align-items: center;
+    justify-content: center;
+    @include below-small-tablet{
+        row-gap: 40px;
+        flex-direction: column;
+    }
 
+    &__tag{
+        text-transform: uppercase;
+        font-weight: 700;
+    }
     &__image{
+
         width: 50%;
+        @include below-small-tablet{
+            width: 100%;
+        }
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+
+        img{
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
     }
      &__body{
+        row-gap: 15px;
         width: 50%;
         display: flex; 
         flex-direction: column;
         align-items: start;
         justify-content: center;
+        @include below-small-tablet{
+            align-items: center;
+            text-align: center;
+            width: 100%;
+        }
     }
     &__title{
         font-size: 2.25rem;
@@ -26,14 +59,86 @@
     &__stats{
         display: flex;
         flex-direction: row;
-
+        svg{
+            margin-right: 5px;
+        }
         &-downloads{
+            display: flex;
+            
+            img{
+                width: 24px;
+                height: 24px;
+            }
 
             &::after {
                 content: '|'; /* Вертикальная черта как разделитель */
                 margin-left: 5px; /* Отступ слева */
                 color: $color-accent2;
+                margin-right: 5px;
               }
         }
     }
-}
+
+    &__buttons{
+        
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: row;
+        column-gap: 20px;
+
+        button{
+            all: unset;
+            cursor: pointer;
+            padding: 5px 30px;
+            border-radius: 10px;
+            color: $color-text;
+            border: 1px solid $color-accent;
+            background-color: $color-accent;
+            font-size: 24px;
+            transition: background-color 0.3s ease; /* Smooth transition */
+            &:hover{
+                background-color: $color-bg;
+                color: white;
+                
+            }
+        }
+
+        &-add {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            color: #FFF;
+            background: transparent;
+            transition: .2s ease-in-out 0s;
+            /* Добавьте transform-origin, если он ещё не добавлен, чтобы масштабирование происходило из центра */
+            transform-origin: center center; 
+        
+            button {
+                all: unset;
+                width: 48px;
+                height: 48px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            &:hover {
+                cursor: pointer;
+                /* Масштабируем родительский div */
+                transform: scale(1.25); 
+                background: #FFF;
+            }
+        }
+   }
+        
+            
+
+            
+        }
+
+    
+

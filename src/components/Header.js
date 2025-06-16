@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 function Header(){
     return(
         <header className='header container'>
@@ -14,9 +16,15 @@ function Header(){
             <div className="header__name">Script RB</div> 
           <nav className="header__nav">
             <ul className="header__nav-list">
-              <li className="header__nav-item">Home</li>
-              <li className="header__nav-item">Exploits</li>
-              <li className="header__nav-item">Tools</li>
+              <Link to="/">
+                <li className="header__nav-item">Home</li>
+              </Link>
+              <Link to="/exploits">
+                <li className="header__nav-item">Exploits</li>
+              </Link>
+              <Link to="/tools">
+                <li className="header__nav-item">Tools</li>
+              </Link>
             </ul>
           </nav>
         </div>

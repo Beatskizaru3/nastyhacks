@@ -1,4 +1,6 @@
 @use './media' as *; // импортируем всё
+@use './variables.scss' as *;
+
 
 .container {
     max-width: 1537px;
@@ -26,4 +28,11 @@
     @include mobile{
         max-width: 640px;
     }
+}
+
+.puddle{
+    background-color: $color-accent2;
+    border-radius: 10px;
+    padding: 5px 10px;
+    color: black;
 }

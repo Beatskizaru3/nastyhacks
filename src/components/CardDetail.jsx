@@ -1,5 +1,10 @@
+
+
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
+import HomePage from "./Home";
+
+import { mockCards, mockTools, mockExploits} from '../mockData';
 
 
 function CardDetail(){
@@ -8,6 +13,8 @@ function CardDetail(){
 
     const [ loading, setLoading ] = useState(true);
     const [ error, setError ] = useState(null);
+
+    const allCards = mockCards.concat(mockTools, mockExploits)
 
     useEffect(()=>{
             const fetchCardDetails = async() =>{
@@ -19,83 +26,11 @@ function CardDetail(){
                     // }
                     // const data = await response.json();
                     // setCardData(data);
-                    const mockCards = [
-                        {
-                        "id": 1,
-                        "title": "Инструмент для веб-разработки",
-                        "description": "Ускоряет процесс создания пользовательских интерфейсов с помощью готовых компонентов.",
-                        "uploadDate": "2025-06-15",
-                        "downloads": 152,
-                        "img": "https://scriptrb.com/cdn-cgi/image/medium-low,format=auto,height=420/https://scriptrb.com/img/uploads/684692b90d5e1_106989035172456074720.webp"
-                        },
-                        {
-                        "id": 2,
-                        "title": "Пакет иконок 'Минимализм'",
-                        "description": "Коллекция из 500+ векторных иконок для современных и чистых дизайнов.",
-                        "uploadDate": "2025-06-14",
-                        "downloads": 345,
-                        "img": "https://scriptrb.com/cdn-cgi/image/medium-low,format=auto,height=420/https://scriptrb.com/img/uploads/684692b90d5e1_106989035172456074720.webp"
-                        },
-                        {
-                        "id": 3,
-                        "title": "Шаблон для админ-панели",
-                        "description": "Готовый к использованию, адаптивный шаблон панели администратора на React.",
-                        "uploadDate": "2025-06-12",
-                        "downloads": 99,
-                        "img": "https://scriptrb.com/cdn-cgi/image/medium-low,format=auto,height=420/https://scriptrb.com/img/uploads/684692b90d5e1_106989035172456074720.webp"
-                        },
-                        {
-                        "id": 4,
-                        "title": "UI Kit для мобильных приложений",
-                        "description": "Набор элементов интерфейса для быстрого прототипирования приложений для iOS и Android.",
-                        "uploadDate": "2025-06-11",
-                        "downloads": 512,
-                        "img": "https://scriptrb.com/cdn-cgi/image/medium-low,format=auto,height=420/https://scriptrb.com/img/uploads/684692b90d5e1_106989035172456074720.webp"
-                        },
-                        {
-                        "id": 5,
-                        "title": "Скрипт для аналитики",
-                        "description": "Легкий скрипт для отслеживания поведения пользователей на вашем сайте без Google Analytics.",
-                        "uploadDate": "2025-06-10",
-                        "downloads": 76,
-                        "img": "https://scriptrb.com/cdn-cgi/image/medium-low,format=auto,height=420/https://scriptrb.com/img/uploads/684692b90d5e1_106989035172456074720.webp"
-                        },
-                        {
-                        "id": 6,
-                        "title": "Набор 3D иллюстраций 'Бизнес'",
-                        "description": "Высококачественные 3D-рендеры на тему бизнеса и стартапов для ваших лендингов.",
-                        "uploadDate": "2025-06-08",
-                        "downloads": 843,
-                        "img": "https://scriptrb.com/cdn-cgi/image/medium-low,format=auto,height=420/https://scriptrb.com/img/uploads/684692b90d5e1_106989035172456074720.webp"
-                        },
-                        {
-                        "id": 7,
-                        "title": "Плагин для Figma 'Экспорт кода'",
-                        "description": "Экспортирует ваши дизайны из Figma напрямую в HTML/CSS или React компоненты.",
-                        "uploadDate": "2025-06-05",
-                        "downloads": 221,
-                        "img": "https://scriptrb.com/cdn-cgi/image/medium-low,format=auto,height=420/https://scriptrb.com/img/uploads/684692b90d5e1_106989035172456074720.webp"
-                        },
-                        {
-                        "id": 8,
-                        "title": "Генератор цветовых палитр",
-                        "description": "Помогает дизайнерам и разработчикам создавать гармоничные цветовые схемы.",
-                        "uploadDate": "2025-06-02",
-                        "downloads": 1024,
-                        "img": "https://scriptrb.com/cdn-cgi/image/medium-low,format=auto,height=420/https://scriptrb.com/img/uploads/684692b90d5e1_106989035172456074720.webp"
-                        },
-                        {
-                        "id": 9,
-                        "title": "Шрифтовая пара 'Элегант'",
-                        "description": "Идеальное сочетание шрифтов (заголовок + текст) для блогов и портфолио.",
-                        "uploadDate": "2025-05-30",
-                        "downloads": 489,
-                        "img": "https://scriptrb.com/cdn-cgi/image/medium-low,format=auto,height=420/https://scriptrb.com/img/uploads/684692b90d5e1_106989035172456074720.webp"
-                        }
-                    ];
+                    
 
-                    const foundCard = mockCards.find(card => card.id === parseInt(id)); // Важно: id из useParams - это строка, преобразуйте в число
-
+                    
+                    const foundCard = allCards.find(card => card.id === parseInt(id)); // Важно: id из useParams - это строка, преобразуйте в число
+                    
                     if (foundCard) {
                         setCardData(foundCard);
                     } else {
@@ -132,21 +67,46 @@ function CardDetail(){
     
 
     return(
+        <>
         <div className="cardInfo container">
             <div className="cardInfo__image">
                 <img src={cardData.img} alt="" />
             </div>
             <div className="cardInfo__body">
-                <p className="cardInfo__tag">Script</p> 
+                <p className="cardInfo__tag puddle">Script</p> 
                 {/* надо добавить теги */}
                 <h2 className="cardInfo__title">{cardData.title}</h2>
                 <p className="cardInfo__description">{cardData.description}</p>
                 <div className="cardInfo__stats">
+                <svg width="24px" height="24px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M12 5V19M12 19L6 13M12 19L18 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
                     <span className="cardInfo__stats-downloads">{cardData.downloads}</span>
+
+                    <svg width="24px" height="24px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M12 7V12L13.5 14.5M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
                     <span className="cardInfo__stats-uploadDate">{cardData.uploadDate}</span>
+                </div>
+
+                <div className="cardInfo__buttons">
+                    <button>Get</button>
+                    <div className="cardInfo__buttons-add">
+                            <svg width="30px" height="30px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 6.00019C10.2006 3.90317 7.19377 3.2551 4.93923 5.17534C2.68468 7.09558 2.36727 10.3061 4.13778 12.5772C5.60984 14.4654 10.0648 18.4479 11.5249 19.7369C11.6882 19.8811 11.7699 19.9532 11.8652 19.9815C11.9483 20.0062 12.0393 20.0062 12.1225 19.9815C12.2178 19.9532 12.2994 19.8811 12.4628 19.7369C13.9229 18.4479 18.3778 14.4654 19.8499 12.5772C21.6204 10.3061 21.3417 7.07538 19.0484 5.17534C16.7551 3.2753 13.7994 3.90317 12 6.00019Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                    </div>
+                    
                 </div>
             </div>
         </div>
+        <HomePage
+            isCardDetailPage = {true}
+            customLoadButton="View more on Home"
+            customTitle="Other Scripts"
+            cardsData={allCards}
+            />
+        </>
     )
 }
 

@@ -58,6 +58,10 @@
         &-list{
             display: flex;
             column-gap: 10px;
+            a {
+                text-decoration: none;
+                color: $color-text;
+            }
         }
 
         &-item{

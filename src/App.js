@@ -14,14 +14,43 @@ import Header from './components/Header';
 import HomePage from './components/Home';
 import CardDetail from './components/CardDetail';
 
+import { mockCards, mockTools, mockExploits } from './mockData'; // Убедитесь, что путь правильный
+
+
 function App() {
+
+
   return (
   <>
    <BrowserRouter>
    <Header/>
     <Routes>
-      <Route path='/' element={<HomePage/>} />
-      <Route path='/card/:id' element={<CardDetail/>}/>
+      <Route path='/' element={<HomePage
+        isCardDetailPage={false}
+        customLoadButton={"View More"}
+        customTitle={"Recent Scripts"}
+        cardsData={mockCards}
+        />} />
+      
+      <Route path='/exploits' element={<HomePage
+        isCardDetailPage={false}
+        customLoadButton={"View More"}
+        customTitle={"Recent Exploits"}
+        cardsData={mockExploits}
+      />} /> 
+
+      <Route path='/tools' element={<HomePage
+        isCardDetailPage={false}
+        customLoadButton={"View More"}
+        customTitle={"Recent Tools"}
+        cardsData={mockTools}
+      />} />
+
+      <Route path='/card/:id' element={<CardDetail
+        allScripts={mockCards}
+        allExploits={mockExploits}
+        allTools={mockTools}
+      />} />
     </Routes>
    </BrowserRouter>
    <footer className="footer container">
