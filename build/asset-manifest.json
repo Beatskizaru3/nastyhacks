@@ -1,0 +1,14 @@
+{
+  "files": {
+    "main.css": "/nastyhacks/static/css/main.796167c6.css",
+    "main.js": "/nastyhacks/static/js/main.27ff3904.js",
+    "index.html": "/nastyhacks/index.html",
+    "static/media/arrow-right.svg": "/nastyhacks/static/media/arrow-right.9989707571221b20c95b.svg",
+    "main.796167c6.css.map": "/nastyhacks/static/css/main.796167c6.css.map",
+    "main.27ff3904.js.map": "/nastyhacks/static/js/main.27ff3904.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.796167c6.css",
+    "static/js/main.27ff3904.js"
+  ]
+}
