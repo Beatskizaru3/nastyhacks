@@ -7,12 +7,13 @@ function RegisterPage(props){
 
 
     const [ email, setEmail] = React.useState('');
+    const [ username, setUsername ] = React.useState('');
     const [ password, setPassword] = React.useState('');
     const navigate = useNavigate();
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        console.log('Попытка входа:', { email, password } )
+        console.log('Попытка входа:', { username, email, password } )
          // Здесь позже будет API-запрос к бэкенду
     // if (успешно) {
     //   localStorage.setItem('token', 'ваш_токен'); // Сохраняем токен
@@ -26,6 +27,13 @@ function RegisterPage(props){
             <div className="register__body">
                 <h2 className="register__title">Register</h2>
                 <form onSubmit={handleSubmit}>
+                    <input
+                        type="text"
+                        placeholder="Username"
+                        value={username}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                    ></input>
                     <input
                         type="email"
                         placeholder="Email"

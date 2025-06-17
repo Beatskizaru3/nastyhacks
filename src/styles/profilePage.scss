@@ -1,0 +1,25 @@
+@use './variables.scss' as *;
+
+.profile {
+    display: flex;
+    flex-direction: column;
+    // align-items: center; // Уберите это здесь, если хотите центрировать body через margin: auto;
+    justify-content: start;
+    align-items: start;
+    width: 100%; // profile обычно занимает 100% ширины контейнера
+    row-gap: 30px;
+    &__body {
+        display: flex;
+        background-color: $color-card;
+        align-items: center;
+        justify-content: start;
+        padding: 20px 80px 20px 20px;
+        flex-direction: row;
+        column-gap: 30px;
+        border-radius: 20px;
+        border: 2px solid $color-accent;
+        // ***** ДОБАВЬТЕ ОДНО ИЗ ЭТИХ РЕШЕНИЙ *****
+        width: fit-content; // Позволяет элементу занимать ширину по содержимому
+        
+    }
+}

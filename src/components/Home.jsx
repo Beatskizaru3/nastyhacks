@@ -2,14 +2,15 @@ import Card from './Card';
 import { useState, useEffect, useRef } from "react";
 import { useClickOutside } from '../hooks/useClickOutside';
 import { Link } from "react-router-dom";
+import { useAuth } from '../context/AuthContext'; 
 
 const CARDS_PER_LOAD = 9;
 
 function HomePage({ isCardDetailPage = false, customLoadButton = "Load More", customTitle = "Recent Scripts", cardsData}){
  
-
-
   const [visibleCardsCount, setVisibleCardsCount] = useState(CARDS_PER_LOAD);
+
+  const { user, favoritedIds, isLoading: authLoading, toggleFavorite } = useAuth(); 
 
   const [isOpen, setOpen] = useState(false);
       const menuRef = useRef(null);
@@ -47,12 +48,10 @@ function HomePage({ isCardDetailPage = false, customLoadButton = "Load More", cu
             return(
               <Card
                 key={cardInfo.id}
-                id={cardInfo.id}
-                img={cardInfo.img}
-                title={cardInfo.title}
-                description={cardInfo.description}   
-                uploadDate={cardInfo.uploadDate}
-                downloads={cardInfo.downloads}         
+                card={cardInfo}    
+                isFavorite={favoritedIds.includes(cardInfo.id)} // Проверяем, есть ли ID карточки в favoritedIds
+                toggleFavorite={toggleFavorite} // Передаем функцию toggleFavorite
+                disableFavorite={authLoading || !user} // Отключаем кнопку, если идет загрузка аутентификации или пользователь не авторизован
               />
             )
            })}
