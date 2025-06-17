@@ -31,7 +31,7 @@ function RegisterPage(props){
                         type="text"
                         placeholder="Username"
                         value={username}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => setUsername(e.target.value)}
                         required
                     ></input>
                     <input
