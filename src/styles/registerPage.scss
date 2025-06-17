@@ -1,0 +1,67 @@
+@use "./variables.scss" as *;
+
+.register{
+    display: flex;
+    margin-top: 3em;
+    &__title{
+        text-align: center;
+    }
+
+    &__body{
+        position: relative;
+        z-index: 1;
+        max-width: 350px;
+        margin: auto;
+        padding: 45px;
+        background: $color-card;
+        border-radius: 30px;
+        display: flex;
+        flex-direction: column;
+        row-gap: 20px;
+        form{
+            display: flex;
+            flex-direction: column;
+            row-gap: 15px;
+            
+            input{
+                border-radius: 10px;
+                width: 100%;
+                border: 0;
+                margin: 0 0 15px;
+                padding: 15px;
+                outline: 0;
+                font-size: 15px;
+                text-align: center;
+                box-sizing: border-box;
+                background: $color-bg;
+                &::placeholder {
+                    color: #90A4AE;
+                  }
+            }
+
+        button{
+            border-radius: 10px;
+            font-size: 15px;
+            outline: 0;
+            border: 0;
+            width: 100%;
+            padding: 15px;
+            background: $color-accent;
+            color: $color-text;
+            text-transform: uppercase;
+            transition: background-color 0.3s ease; /* Smooth transition */
+            &:hover{
+                background-color: $color-bg;
+                color: white;
+                
+            }
+        }
+        }
+        p{
+            a{
+                text-decoration: none;
+                color: $color-accent2;
+            }
+        }
+    }
+}

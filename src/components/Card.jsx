@@ -1,6 +1,11 @@
 import { Link } from 'react-router-dom';
 
+
 function Card(props){
+
+  
+
+  
     return(
         <div className="main__card">
             <img src={props.img} alt="" className="main__card-img" />

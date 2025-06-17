@@ -103,10 +103,20 @@
     &__profile{
         display: flex;
         align-items: center;
+        a{
+            display: flex;
+        align-items: center;    
+        }
+        cursor: pointer;
         svg{
             width: 24px;
             height: 24px;
             color: $color-accent2;
+            
+        }
+        &:hover{
+            transition: transform 0.2s ease-in-out;
+            transform: scale(1.5);
         }
     }
 

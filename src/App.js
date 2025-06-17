@@ -13,8 +13,11 @@ import { Route, Routes, BrowserRouter } from 'react-router-dom';
 import Header from './components/Header';
 import HomePage from './components/Home';
 import CardDetail from './components/CardDetail';
+import LoginPage from './pages/loginPage';
+import RegisterPage from './pages/registerPage';
 
 import { mockCards, mockTools, mockExploits } from './mockData'; // Убедитесь, что путь правильный
+
 
 
 function App() {
@@ -51,6 +54,16 @@ function App() {
         allExploits={mockExploits}
         allTools={mockTools}
       />} />
+
+      <Route path='/login' element={<LoginPage
+      // login={}
+      // password={}
+      />}/>
+
+      <Route path='/register' element={<RegisterPage
+      // login={}
+      // password={}
+      />}/>
     </Routes>
    </BrowserRouter>
    <footer className="footer container">
