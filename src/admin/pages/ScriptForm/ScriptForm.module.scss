@@ -1,0 +1,172 @@
+// src/admin/pages/ScriptForm/ScriptForm.module.scss
+@use '../../../styles/variables.scss' as *;
+@use '../../../styles/media.scss' as *;
+
+.scriptFormContainer {
+  padding: 20px;
+  background-color: $color-bg;
+  color: $color-text;
+  max-width: 800px;
+  margin: 20px auto;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+
+  h2 {
+    color: $color-accent;
+    margin-bottom: 30px;
+    text-align: center;
+    font-size: 2em;
+  }
+
+  .errorMessage {
+    color: red;
+    background-color: lighten(red, 40%);
+    border: 1px solid red;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  .loading {
+    text-align: center;
+    padding: 20px;
+    font-size: 1.2em;
+    color: $color-text;
+  }
+
+  .scriptForm {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+
+    .formGroup {
+      display: flex;
+      flex-direction: column;
+
+      label {
+        margin-bottom: 8px;
+        font-weight: bold;
+        color: $color-text;
+      }
+
+      input[type="text"],
+      textarea {
+        padding: 10px 12px;
+        border: 1px solid $color-card;
+        border-radius: 5px;
+        background-color: $color-bg;
+        color: $color-text;
+        font-size: 1em;
+        resize: vertical; // Разрешить вертикальное изменение размера для textarea
+
+        &:focus {
+          outline: none;
+          border-color: $color-accent;
+          box-shadow: 0 0 0 3px rgba($color-accent, 0.3);
+        }
+      }
+
+      input[type="file"] {
+        padding: 10px 0; // Для input file нужно другое отступы
+      }
+
+      .imagePreview {
+        margin-top: 15px;
+        border: 1px dashed $color-card;
+        padding: 10px;
+        border-radius: 5px;
+        text-align: center;
+
+        p {
+          margin-bottom: 10px;
+          color: $color-text;
+        }
+
+        img {
+          max-width: 100%;
+          height: auto;
+          max-height: 200px; // Ограничить высоту превью
+          border-radius: 5px;
+          object-fit: contain; // Сохранить пропорции
+        }
+      }
+
+      .tagsSelect {
+        padding: 10px 12px;
+        border: 1px solid $color-card;
+        border-radius: 5px;
+        background-color: $color-bg-soft;
+        color: $color-text;
+        font-size: 1em;
+        min-height: 100px; // Для мультиселекта, чтобы было видно несколько опций
+        
+        option {
+          background-color: $color-bg-soft;
+          color: $color-text;
+          padding: 5px 10px;
+        }
+        option:checked { // Стилизация выбранных опций
+          background-color: $color-accent;
+          color: $color-bg;
+        }
+      }
+    }
+
+    .submitButton, .cancelButton {
+      padding: 12px 25px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 1.1em;
+      font-weight: bold;
+      transition: background-color 0.2s ease, transform 0.2s ease;
+      width: fit-content; // Адаптивная ширина кнопки
+      align-self: center; // Выровнять по центру
+    }
+
+    .submitButton {
+      background-color: $color-accent;
+      color: $color-bg;
+      &:hover:not(:disabled) {
+        background-color: darken($color-accent, 10%);
+        transform: translateY(-2px);
+      }
+      &:disabled {
+        background-color: $color-card;
+        cursor: not-allowed;
+      }
+    }
+
+    .cancelButton {
+      background-color: $color-card;
+      color: $color-text;
+      margin-top: 10px; // Отступ от кнопки "Сохранить"
+      &:hover {
+        background-color: lighten($color-card, 10%);
+      }
+    }
+  }
+
+  @include below-tablet {
+    padding: 15px;
+    margin: 15px auto;
+    h2 {
+      font-size: 1.8em;
+    }
+    .scriptForm {
+      gap: 15px;
+    }
+    .submitButton, .cancelButton {
+      width: 100%; // Кнопки на полную ширину на мобильных
+    }
+  }
+
+  @include mobile {
+    padding: 10px;
+    margin: 10px auto;
+    h2 {
+      font-size: 1.5em;
+    }
+  }
+}

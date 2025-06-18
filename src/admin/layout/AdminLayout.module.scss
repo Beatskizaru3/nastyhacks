@@ -1,0 +1,15 @@
+@use '../../styles/variables.scss' as *; // Убедитесь, что путь правильный
+@use '../../styles/media.scss' as *;    // Убедитесь, что путь правильный
+
+.admin__layout {
+  display: flex;
+  min-height: 100vh; // Занимает всю высоту viewport'а
+  background-color: $color-bg; // Пример цвета фона для админки
+  color: $color-text; // Пример цвета текста
+
+  .admin__content {
+    flex-grow: 1; // Занимает все доступное пространство справа от сайдбара
+    padding: 20px;
+    overflow-y: auto; // Добавляем прокрутку, если контент не помещается
+  }
+}

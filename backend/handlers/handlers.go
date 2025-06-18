@@ -1,330 +1,326 @@
 package handlers
 
 import (
-	"database/sql"
-	"filesharing/backend/datab"
 	"fmt"
 	"log"
 	"net/http"
-	"os"
-	"path/filepath"
-	"strconv"
-	"strings"
+	"strconv" // Для конвертации строк в числа
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid" // Для генерации UUID
+	"gorm.io/gorm"           // Для проверки gorm.ErrRecordNotFound
+
+	"nasty/database"
+	"nasty/models"     // Путь к вашей модели Card и User
+	"nasty/repository" // Путь к вашему репозиторию
+	"nasty/utils"      // Для работы с JWT и хешированием паролей
 )
 
-func GetFileHandler(ctx *gin.Context) {
-	db := datab.ConnectDB()
-	defer db.Close()
-	fileID := ctx.Param("id")
-	var fileData struct {
-		ID                int
-		Filename          string
-		Filepath          string
-		UploadedAt        string
-		DownloadCount     string
-		RealDownloadCount string
-		Description       string
-		YoutubeLink       string
-		PreviewImage      string
-	}
-	err := db.QueryRow("SELECT id, filename, filepath, uploaded_at, download_count, real_download_count, description,youtube_link, preview_image FROM files WHERE id = $1", fileID).
-		Scan(&fileData.ID, &fileData.Filename, &fileData.Filepath, &fileData.UploadedAt, &fileData.DownloadCount, &fileData.RealDownloadCount, &fileData.Description, &fileData.YoutubeLink, &fileData.PreviewImage)
-	if err == sql.ErrNoRows {
-		ctx.JSON(http.StatusNotFound, gin.H{"error": "File not found"})
+// Register - обработчик для регистрации нового пользователя
+func Register(c *gin.Context) {
+	var user models.User
+	if err := c.ShouldBindJSON(&user); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	// Хешируем пароль
+	hashedPassword, err := utils.HashPassword(user.Password)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Internal error"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось хешировать пароль"})
 		return
 	}
+	user.Password = hashedPassword
+	user.CreatedAt = time.Now()
+	user.UpdatedAt = time.Now()
+	user.Role = "user" // По умолчанию роль "user"
 
-	output := gin.H{
-		"id":                  fileData.ID,
-		"filename":            fileData.Filename,
-		"filepath":            fileData.Filepath,
-		"description":         fileData.Description,
-		"youtube_link":        fileData.YoutubeLink,
-		"preview_image":       fileData.PreviewImage,
-		"uploaded_at":         fileData.UploadedAt,
-		"download_count":      fileData.DownloadCount,
-		"real_download_count": fileData.RealDownloadCount,
-	}
-	ctx.JSON(http.StatusOK, output)
-}
-func GetAllFilesHandler(ctx *gin.Context) {
-	db := datab.ConnectDB()
-	defer db.Close()
-	sortField := ctx.DefaultQuery("sort", "date") // дефолтное значени параетра в ссылке
-	pageStr := ctx.DefaultQuery("page", "1")
-	limitStr := ctx.DefaultQuery("limit", "10")
+	// ИСПРАВЛЕНИЕ 2: user.ID - тип uint. uuid.New().String() - тип string.
+	// Если user.ID должен быть uint, вам НЕ НУЖЕН uuid.
+	// Если user.ID должен быть string (как UUID), тогда измените тип в модели models.User
+	// и в функциях репозитория, которые работают с ID пользователя.
+	// Предполагаем, что user.ID должен быть UUID (string) для консистентности с card.ID.
+	// Если же user.ID должен быть uint, просто удалите эту строку:
+	user.ID = uuid.New().String() // Генерация UUID для пользователя. Если ID в модели uint, это вызовет ошибку!
 
-	page, _ := strconv.Atoi(pageStr)
-	limit, _ := strconv.Atoi(limitStr)
-	offset := (page - 1) * limit
-
-	var orderBy string
-
-	switch sortField {
-	case "downloads":
-		orderBy = "download_count DESC"
-	case "name":
-		orderBy = "filename ASC"
-	default:
-		orderBy = "uploaded_at DESC"
-	}
-
-	rows, err := db.Query("SELECT id, filename, filepath, description, youtube_link, preview_image, uploaded_at, download_count FROM files ORDER BY $1 LIMIT $2 OFFSET $3;", orderBy, limit, offset)
+	err = database.CreateUser(&user)
 	if err != nil {
-		log.Println("Ошибка при запросе к БД:", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при запросе к БД"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось зарегистрировать пользователя: " + err.Error()})
 		return
 	}
 
-	defer rows.Close()
-
-	var output []gin.H
-
-	for rows.Next() {
-
-		var id int
-		var filename string
-		var filepath string
-		var description string
-		var youtubeLink string
-		var previewImage string
-		var uploadedAt string
-		var downloadCount int
-		if err := rows.Scan(&id, &filename, &filepath, &description, &youtubeLink, &previewImage, &uploadedAt, &downloadCount); err != nil {
-			log.Println("Error while reading db")
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Error while reading db"})
-			return
-		}
-
-		output = append(output, gin.H{
-			"id":             id,
-			"filename":       filename,
-			"filepath":       filepath,
-			"description":    description,
-			"youtube_link":   youtubeLink,
-			"preview_image":  previewImage,
-			"uploaded_at":    uploadedAt,
-			"download_count": downloadCount,
-		})
-
-		if err := rows.Err(); err != nil {
-			log.Println("Ошибка при обработке данных:", err)
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при обработке данных"})
-			return
-		}
-	}
-	if err := rows.Err(); err != nil {
-		log.Println("Ошибка при получения:", err)
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получения"})
-		return
-	}
-	ctx.JSON(http.StatusOK, gin.H{"files": output})
+	c.JSON(http.StatusCreated, gin.H{"message": "Пользователь успешно зарегистрирован"})
 }
 
-// ??
-func DeleteFileHandler(ctx *gin.Context) {
-	fileID := ctx.Param("id")
-	if fileID == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "ID не указан"})
+// Login - обработчик для входа пользователя
+// Login - обработчик для входа пользователя
+func Login(c *gin.Context) {
+	var req struct {
+		Identifier string `json:"identifier" binding:"required"` // Может быть email или username
+		Password   string `json:"password" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	db := datab.ConnectDB()
-	defer db.Close()
+	var user *models.User
+	var err error
 
-	// Получаем путь к файлу из базы
-	var filePath string
-	err := db.QueryRow("SELECT filepath FROM files WHERE id = $1", fileID).Scan(&filePath)
+	user, err = database.GetUserByEmail(req.Identifier)
 	if err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"error": "Файл не найден"})
-		return
-	}
-
-	// Удаляем файл с диска
-	if _, statErr := os.Stat(filePath); statErr == nil {
-		if rmErr := os.Remove(filePath); rmErr != nil {
-			log.Println("Ошибка при удалении файла с диска:", rmErr)
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при удалении файла с диска"})
-			return
-		}
-	}
-
-	// Удаляем запись из базы
-	_, err = db.Exec("DELETE FROM files WHERE id = $1", fileID)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при удалении записи из базы"})
-		return
-	}
-
-	ctx.JSON(http.StatusOK, gin.H{"message": "Файл успешно удалён"})
-}
-
-func DownloadByIDHandler(ctx *gin.Context) {
-	fileID := ctx.Param("id")
-
-	db := datab.ConnectDB()
-	defer db.Close()
-
-	var filepathstr string
-	var downloadCount, realDownloadCount int
-	err := db.QueryRow("SELECT filepath, download_count, real_download_count FROM files WHERE id = $1", fileID).Scan(&filepathstr, &downloadCount, &realDownloadCount)
-	if err == sql.ErrNoRows {
-		ctx.JSON(http.StatusNotFound, gin.H{"error": "Файл не найден в базе"})
-		return
-	} else if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка запроса к БД"})
-		return
-	}
-
-	if _, err := os.Stat(filepathstr); os.IsNotExist(err) {
-		ctx.JSON(http.StatusNotFound, gin.H{"error": "Файл не найден на диске"})
-		return
-	}
-
-	absPath, err := filepath.Abs(filepathstr)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка преобразования пути"})
-		return
-	}
-
-	uploadsDir, err := filepath.Abs("./uploads")
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка преобразования пути к uploads"})
-		return
-	}
-
-	if !strings.HasPrefix(absPath, uploadsDir) {
-		ctx.JSON(http.StatusForbidden, gin.H{"error": "Недопустимый путь"})
-		return
-	}
-	downloadCount++
-	realDownloadCount++
-	db.Exec("UPDATE files SET download_count = $1, real_download_count = $2 WHERE id = $3", downloadCount, realDownloadCount, fileID)
-	ctx.Header("Content-Disposition", fmt.Sprintf("attachment; fileId=\"%s\"", fileID))
-	ctx.File(absPath)
-}
-
-// ??
-func UpdateByIDHandler(ctx *gin.Context) {
-	// Получаем ID файла из URL
-	fileID := ctx.Param("id")
-	if fileID == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Empty id"})
-		return
-	}
-
-	db := datab.ConnectDB()
-	defer db.Close()
-
-	// Получаем текущую информацию о файле из БД
-	var currentInfo struct {
-		ID           int
-		Filename     string
-		FilePath     string
-		Description  string
-		YouTubeLink  string
-		PreviewImage string
-	}
-	err := db.QueryRow("SELECT id, filename, filepath, description, youtube_link, preview_image FROM files WHERE id = $1", fileID).
-		Scan(&currentInfo.ID, &currentInfo.Filename, &currentInfo.FilePath, &currentInfo.Description, &currentInfo.YouTubeLink, &currentInfo.PreviewImage)
-	if err != nil {
-		ctx.String(http.StatusNotFound, "File not found")
-		return
-	}
-
-	// Получаем новые данные из формы. Если отсутствуют — оставляем старые.
-	newDesc := ctx.DefaultPostForm("description", currentInfo.Description)
-	newYouTubeLink := ctx.DefaultPostForm("youtube_link", currentInfo.YouTubeLink)
-	// Параметр, который пользователь хочет отобразить на сайте (без префиксов времени)
-	providedNewName := ctx.PostForm("filename")
-
-	// ========= Обработка основного файла =========
-	var newFilePath string
-	var newFileName string
-	newMainFile, fileErr := ctx.FormFile("file")
-	if fileErr == nil {
-		// Новый основной файл передан. Удаляем старый (если существует).
-		if _, statErr := os.Stat(currentInfo.FilePath); statErr == nil {
-			if rmErr := os.Remove(currentInfo.FilePath); rmErr != nil {
-				log.Println("Ошибка при удалении старого файла:", rmErr)
-				ctx.String(http.StatusInternalServerError, "Ошибка при удалении старого файла")
+		if err == gorm.ErrRecordNotFound {
+			user, err = database.GetUserByUsername(req.Identifier)
+			if err != nil {
+				if err == gorm.ErrRecordNotFound {
+					c.JSON(http.StatusUnauthorized, gin.H{"error": "Неверное имя пользователя или пароль"})
+					return
+				}
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка сервера при входе"})
 				return
 			}
-			log.Println("Старый основной файл удалён")
-		}
-		// Сохраняем новый файл с уникальным именем для диска
-		uniqueDiskName := fmt.Sprintf("%d-%s", time.Now().Unix(), newMainFile.Filename)
-		newFilePath = fmt.Sprintf("./uploads/%s", uniqueDiskName)
-		if saveErr := ctx.SaveUploadedFile(newMainFile, newFilePath); saveErr != nil {
-			log.Println("Ошибка при сохранении нового файла:", saveErr)
-			ctx.String(http.StatusInternalServerError, "Ошибка при сохранении нового файла")
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка сервера при входе"})
 			return
-		}
-		// Записываем в базу имя из запроса, если передано, иначе берем имя из загруженного файла
-		if providedNewName != "" {
-			newFileName = providedNewName
-		} else {
-			newFileName = newMainFile.Filename
-		}
-	} else {
-		// Новый основной файл не передан.
-		// Если в запросе передано новое имя и оно отличается, то переименовываем старый файл.
-		if providedNewName != "" && providedNewName != currentInfo.Filename {
-			// Получаем расширение текущего файла
-			ext := filepath.Ext(currentInfo.FilePath)
-			uniqueDiskName := fmt.Sprintf("%d-%s%s", time.Now().Unix(), providedNewName, ext)
-			newFilePath = fmt.Sprintf("./uploads/%s", uniqueDiskName)
-			if renameErr := os.Rename(currentInfo.FilePath, newFilePath); renameErr != nil {
-				log.Println("Ошибка при переименовании файла:", renameErr)
-				ctx.String(http.StatusInternalServerError, "Ошибка при переименовании файла")
-				return
-			}
-			newFileName = providedNewName
-		} else {
-			newFileName = currentInfo.Filename
-			newFilePath = currentInfo.FilePath
 		}
 	}
 
-	// ========= Обработка превью изображения =========
-	var newPreviewPath string
-	previewHeader, prevErr := ctx.FormFile("preview_image")
-	if prevErr == nil {
-		// Если новое превью передано, удаляем старое (если существует)
-		if currentInfo.PreviewImage != "" {
-			if rmErr := os.Remove(currentInfo.PreviewImage); rmErr != nil {
-				log.Println("Ошибка при удалении старого превью:", rmErr)
-				// Логируем, но продолжаем обновление
-			} else {
-				log.Println("Старое превью удалено")
-			}
-		}
-		uniquePreviewName := fmt.Sprintf("%d-%s", time.Now().Unix(), previewHeader.Filename)
-		newPreviewPath = fmt.Sprintf("./uploads/thumbs/%s", uniquePreviewName)
-		if saveErr := ctx.SaveUploadedFile(previewHeader, newPreviewPath); saveErr != nil {
-			log.Println("Ошибка при сохранении нового превью:", saveErr)
-			ctx.String(http.StatusInternalServerError, "Ошибка при сохранении нового превью")
-			return
-		}
-	} else {
-		newPreviewPath = currentInfo.PreviewImage
-	}
-
-	// ========= Обновление записи в базе данных =========
-	query := "UPDATE files SET filename=$1, filepath=$2, description=$3, youtube_link=$4, preview_image=$5 WHERE id=$6"
-	_, err = db.Exec(query, newFileName, newFilePath, newDesc, newYouTubeLink, newPreviewPath, fileID)
-	if err != nil {
-		log.Println("Ошибка при обновлении данных файла:", err)
-		ctx.String(http.StatusInternalServerError, "Ошибка при обновлении данных файла")
+	if !utils.CheckPasswordHash(req.Password, user.Password) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Неверное имя пользователя или пароль"})
 		return
 	}
 
-	ctx.String(http.StatusOK, fmt.Sprintf("Файл '%s' успешно обновлён", newFileName))
+	// ИСПРАВЛЕНИЕ: user.ID уже string, поэтому передаем его напрямую
+	token, err := utils.GenerateJWT(user.ID, user.Role) // user.ID уже string
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось сгенерировать токен"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Успешный вход", "token": token})
+}
+
+// Profile - обработчик для получения данных профиля пользователя
+func Profile(c *gin.Context) {
+	userID := c.GetString("userID") // ID пользователя из JWT, установленный AuthMiddleware
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Неавторизованный доступ"})
+		return
+	}
+
+	user, err := database.GetUserByID(userID) // ИСПРАВЛЕНИЕ: database.GetUserByID или repository.GetUserByID
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Пользователь не найден"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка сервера при получении профиля"})
+		return
+	}
+
+	// Получаем избранные ID карточек
+	favoritedIDs, err := database.GetFavoriteCardIDsByUserID(userID) // ИСПРАВЛЕНИЕ: database.GetFavoriteCardIDsByUserID или repository.GetFavoriteCardIDsByUserID
+	if err != nil {
+		log.Printf("Ошибка при получении избранных ID для пользователя %s: %v", userID, err)
+		// Не возвращаем ошибку клиенту, так как это не критично для профиля
+		favoritedIDs = []string{}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"id":        user.ID,
+		"username":  user.Username,
+		"email":     user.Email,
+		"role":      user.Role,
+		"favorites": favoritedIDs, // Добавляем список избранных ID
+		// Не отправляйте хеш пароля клиенту!
+	})
+}
+
+// CreateCardHandler создает новую карточку. (Требует авторизации)
+func CreateCardHandler(c *gin.Context) {
+	var card models.Card
+	if err := c.ShouldBindJSON(&card); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат данных: " + err.Error()})
+		return
+	}
+
+	// Предполагаем, что card.ID в models.Card - это string (UUID)
+	card.ID = uuid.New().String() // Генерация UUID для карточки
+	card.UploadedAt = time.Now()  // Устанавливаем время загрузки
+
+	repository.AddToDb(&card) // Используем вашу функцию из репозитория
+	c.JSON(http.StatusCreated, gin.H{"message": "Карточка успешно создана", "cardId": card.ID})
+}
+
+// GetCardByIDHandler возвращает одну карточку по ID. (Публичный)
+func GetCardByIDHandler(c *gin.Context) {
+	cardID := c.Param("id")
+
+	card, err := repository.GetCardByID(cardID) // Используем вашу функцию из репозитория
+	if err != nil {
+		// Проверяем на конкретную ошибку "не найдено"
+		if err.Error() == fmt.Sprintf("Карточка с ID %s не найдена", cardID) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Карточка не найдена."})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при загрузке данных: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, card)
+}
+
+// GetAllCardsHandler возвращает все карточки с фильтрацией и пагинацией. (Публичный)
+func GetAllCardsHandler(c *gin.Context) {
+	var options repository.GetAllCardsOptions
+
+	// Парсинг параметров запроса
+	if tagIDStr := c.Query("tagId"); tagIDStr != "" {
+		tagID, err := strconv.ParseUint(tagIDStr, 10, 32)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат tagId"})
+			return
+		}
+		uTagID := uint(tagID)
+		options.TagID = &uTagID
+	}
+
+	options.SortBy = c.DefaultQuery("sortBy", "uploaded_at") // По умолчанию сортировка по дате загрузки
+	options.SortOrder = c.DefaultQuery("sortOrder", "desc")  // По умолчанию по убыванию
+	options.SearchTitle = c.Query("search")
+
+	if minDownloadsStr := c.Query("minDownloads"); minDownloadsStr != "" {
+		minDownloads, err := strconv.Atoi(minDownloadsStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат minDownloads"})
+			return
+		}
+		options.MinDownloads = &minDownloads
+	}
+
+	if uploadDateStr := c.Query("uploadDate"); uploadDateStr != "" {
+		options.UploadDate = &uploadDateStr
+	}
+
+	if limitStr := c.Query("limit"); limitStr != "" {
+		limit, err := strconv.Atoi(limitStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат limit"})
+			return
+		}
+		options.Limit = limit
+	}
+
+	if offsetStr := c.Query("offset"); offsetStr != "" {
+		offset, err := strconv.Atoi(offsetStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат offset"})
+			return
+		}
+		options.Offset = offset
+	}
+
+	cards, err := repository.GetAllCards(options)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении карточек: " + err.Error()})
+		return
+	}
+
+	totalCount, err := repository.GetTotalCardCount(options)
+	if err != nil {
+		log.Printf("Ошибка при получении общего количества карточек: %v", err)
+		totalCount = int64(len(cards)) // Fallback к количеству в текущем запросе
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"cards":      cards,
+		"totalCount": totalCount,
+	})
+}
+
+// UpdateCardHandler обновляет существующую карточку. (Требует авторизации)
+func UpdateCardHandler(c *gin.Context) {
+	cardID := c.Param("id")
+	var updatedCard models.Card
+	if err := c.ShouldBindJSON(&updatedCard); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат данных: " + err.Error()})
+		return
+	}
+
+	// Убедитесь, что ID в теле запроса (если есть) соответствует ID из URL
+	if updatedCard.ID != "" && updatedCard.ID != cardID {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID карточки в теле запроса не соответствует ID в URL"})
+		return
+	}
+	updatedCard.ID = cardID // Устанавливаем ID для обновления
+
+	err := repository.UpdateInDb(cardID, &updatedCard)
+	if err != nil {
+		if err.Error() == fmt.Sprintf("Запись с ID %s не найдена для обновления", cardID) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Карточка не найдена для обновления."})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при обновлении карточки: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Карточка успешно обновлена"})
+}
+
+// DeleteCardHandler удаляет карточку. (Требует авторизации)
+func DeleteCardHandler(c *gin.Context) {
+	cardID := c.Param("id")
+
+	err := repository.DeleteFromDb(cardID)
+	if err != nil {
+		if err.Error() == fmt.Sprintf("Запись с ID %s не найдена для удаления", cardID) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Карточка не найдена для удаления."})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при удалении карточки: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Карточка успешно удалена"})
+}
+
+// ToggleFavoriteHandler - добавляет/удаляет карточку из избранного (Требует авторизации)
+func ToggleFavoriteHandler(c *gin.Context) { // ИСПРАВЛЕНИЕ 1: Changed *hostnames.Context to *gin.Context
+	userID := c.GetString("userID") // Получаем userID из контекста, установленного AuthMiddleware
+	cardID := c.Param("cardId")
+
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Пользователь не авторизован."})
+		return
+	}
+
+	// ИСПРАВЛЕНИЕ 3: Вызывайте функции из пакета repository, а не database,
+	// если repository предназначен для всех операций с БД.
+	err := database.ToggleFavorite(userID, cardID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при обновлении избранного: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Избранное успешно обновлено."})
+}
+
+// GetUsersHandler (пример админского роута)
+func GetUsersHandler(c *gin.Context) {
+	// Можно добавить проверку роли администратора здесь, если middleware не делает это автоматически
+	// userRole := c.GetString("userRole")
+	// if userRole != "admin" {
+	// 	c.JSON(http.StatusForbidden, gin.H{"error": "Доступ запрещен. Требуется роль администратора."})
+	// 	return
+	// }
+
+	// ИСПРАВЛЕНИЕ 3: Вызывайте функции из пакета repository, а не database.
+	users, err := database.GetAllUsers()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении списка пользователей: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, users)
 }

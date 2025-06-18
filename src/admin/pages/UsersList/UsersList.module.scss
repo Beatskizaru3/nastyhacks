@@ -1,0 +1,149 @@
+// src/admin/pages/UsersList/UsersList.module.scss
+@use '../../../styles/variables.scss' as *; // Путь к вашим переменным
+@use '../../../styles/media.scss' as *;    // Путь к вашим медиа-запросам
+
+.usersList {
+  padding: 20px;
+  background-color: $color-bg;
+  color: $color-text;
+
+  h2 {
+    color: $color-accent;
+    margin-bottom: 30px;
+    font-size: 2em;
+  }
+
+  .totalUsersInfo {
+    background-color: $color-card;
+    border-radius: 8px;
+    padding: 15px 20px;
+    margin-bottom: 30px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    text-align: center;
+    font-size: 1.2em;
+
+    span {
+      font-weight: bold;
+      color: $color-accent;
+      font-size: 1.5em;
+    }
+  }
+
+  .tableContainer {
+    background-color: $color-card;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    overflow-x: auto; // Для горизонтальной прокрутки на маленьких экранах
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 600px; // Минимальная ширина таблицы
+
+      thead {
+        th {
+          background-color: lighten($color-card, 5%);
+          color: $color-text;
+          padding: 15px;
+          text-align: left;
+          font-weight: bold;
+          border-bottom: 1px solid $color-card;
+
+          &:first-child { border-top-left-radius: 8px; }
+          &:last-child { border-top-right-radius: 8px; }
+        }
+      }
+
+      tbody {
+        tr {
+          border-bottom: 1px solid $color-card;
+
+          &:last-child {
+            border-bottom: none;
+          }
+
+          &:nth-child(even) {
+            background-color: lighten($color-card, 2%);
+          }
+          &:hover {
+            background-color: lighten($color-card, 7%);
+          }
+        }
+
+        td {
+          padding: 15px;
+          vertical-align: middle;
+        }
+      }
+    }
+  }
+
+  .pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 20px;
+    gap: 15px; // Расстояние между элементами пагинации
+
+    .paginationButton {
+      background-color: $color-bg-soft;
+      color: $color-accent;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background-color 0.2s ease, opacity 0.2s ease;
+
+      &:hover:not(:disabled) {
+        background-color: lighten($color-bg, 10%);
+      }
+
+      &:disabled {
+        background-color: $color-card;
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
+    }
+
+    span {
+      font-size: 1.1em;
+      color: $color-text;
+    }
+  }
+
+  // Адаптивность
+  @include below-tablet {
+    padding: 15px;
+    h2 {
+      font-size: 1.8em;
+    }
+    .totalUsersInfo {
+      font-size: 1.1em;
+      span {
+        font-size: 1.3em;
+      }
+    }
+    .tableContainer {
+      min-width: unset;
+    }
+  }
+
+  @include mobile {
+    padding: 10px;
+    h2 {
+      font-size: 1.5em;
+    }
+    .tableContainer {
+      table {
+        td, th {
+          padding: 10px;
+          font-size: 0.9em;
+        }
+      }
+    }
+    .pagination {
+      flex-direction: column;
+      gap: 10px;
+    }
+  }
+}

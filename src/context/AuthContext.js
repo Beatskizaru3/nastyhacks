@@ -39,6 +39,7 @@ export const AuthProvider = ({ children }) => {
                   setUser(data.user); // вытягиваем из json логин пользователя
                   setFavoritedIds(data.favorites || []); // Обновляем локальный кэш избранного
                   console.log('Пользователь и избранное загружены')
+                  console.log('Роль пользователя:', data.user.role); 
                 } 
                 else if (response.status === 401) {
                     console.error('Ошибка аутентификации: токен недействителен. Выход.');

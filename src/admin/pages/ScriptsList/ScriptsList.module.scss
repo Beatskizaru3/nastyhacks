@@ -1,0 +1,199 @@
+// src/admin/pages/ScriptsList/ScriptsList.module.scss
+@use '../../../styles/variables.scss' as *; // Путь к вашим переменным
+@use '../../../styles/media.scss' as *;    // Путь к вашим медиа-запросам
+
+.scriptsList {
+  padding: 20px;
+  background-color: $color-bg;
+  color: $color-text;
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+
+    h2 {
+      color: $color-accent;
+      margin: 0;
+      font-size: 2em;
+    }
+
+    .uploadButton {
+      background-color: $color-accent;
+      color: $color-bg;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background-color 0.2s ease, transform 0.2s ease;
+
+      &:hover {
+        background-color: darken($color-accent, 10%);
+        transform: translateY(-2px);
+      }
+    }
+  }
+
+  .tableContainer {
+    background-color: $color-card;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    overflow-x: auto; // Для горизонтальной прокрутки на маленьких экранах
+
+    table {
+      width: 100%;
+      border-collapse: collapse; // Убирает двойные границы
+      min-width: 700px; // Минимальная ширина таблицы для предотвращения слишком сильного сжатия
+
+      thead {
+        th {
+          background-color: lighten($color-card, 5%);
+          color: $color-text;
+          padding: 15px;
+          text-align: left;
+          font-weight: bold;
+          border-bottom: 1px solid $color-bg;
+
+          &:first-child { border-top-left-radius: 8px; }
+          &:last-child { border-top-right-radius: 8px; }
+        }
+      }
+
+      tbody {
+        tr {
+          border-bottom: 1px solid $color-bg;
+
+          &:last-child {
+            border-bottom: none;
+          }
+
+          &:nth-child(even) {
+            background-color: lighten($color-card, 2%); // Чередование строк
+          }
+          &:hover {
+            background-color: lighten($color-card, 7%); // Подсветка при наведении
+          }
+        }
+
+        td {
+          padding: 15px;
+          vertical-align: middle;
+          word-break: break-word; // Перенос слов, если описание длинное
+        }
+      }
+    }
+  }
+
+  .downloadsCell {
+    white-space: nowrap; // Предотвращает перенос числа
+  }
+
+  .editDownloadsInput {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+
+    input {
+      width: 80px;
+      padding: 5px 8px;
+      border: 1px solid $color-card;
+      border-radius: 4px;
+      background-color: $color-bg;
+      color: $color-text;
+    }
+
+    button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1.2em; // Для иконок-символов
+      padding: 5px;
+      line-height: 1; // Убираем лишний интервал
+      color: $color-accent; // Цвет кнопок
+      
+      &:hover {
+        opacity: 0.8;
+      }
+    }
+    .saveBtn { color: green; }
+    .cancelBtn { color: red; }
+  }
+
+  .actions {
+    white-space: nowrap; // Чтобы кнопки не переносились на новую строку
+    .actionButton {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1.5em; // Размеры иконок-символов
+      margin-left: 10px;
+      color: $color-accent2; // Цвет кнопок действий
+      transition: color 0.2s ease, transform 0.2s ease;
+
+      &:first-child { margin-left: 0; } // Убрать отступ для первой кнопки
+
+      &:hover {
+        color: lighten($color-accent2, 10%);
+        transform: scale(1.1);
+      }
+
+      &.deleteButton {
+        color: red; // Красный для кнопки удаления
+        &:hover {
+          color: darken(red, 10%);
+        }
+      }
+    }
+  }
+
+  .pagination {
+    margin-top: 20px;
+    text-align: center;
+    // Стили для кнопок пагинации можно добавить здесь
+  }
+
+  // Адаптивность для мобильных устройств
+  @include below-tablet {
+    padding: 15px;
+    .header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 15px;
+    }
+    h2 {
+      font-size: 1.8em;
+    }
+    .uploadButton {
+      width: 100%;
+    }
+    .tableContainer {
+      min-width: unset; // Убираем минимальную ширину для таблицы
+    }
+  }
+
+  @include mobile {
+    padding: 10px;
+    h2 {
+      font-size: 1.5em;
+    }
+    .tableContainer {
+      table {
+        td, th {
+          padding: 10px;
+        }
+      }
+    }
+    .actions {
+      display: flex;
+      flex-direction: column; // Кнопки действий в столбик
+      gap: 5px;
+      margin-top: 5px;
+      .actionButton {
+        margin-left: 0;
+        &:first-child { margin-left: 0; }
+      }
+    }
+  }
+}
