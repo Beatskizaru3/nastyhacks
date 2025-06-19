@@ -2,9 +2,8 @@ package middleware
 
 import (
 	"fmt"
-	"log"
 	"net/http"
-	"os"
+	"time"
 
 	"nasty/models"
 
@@ -12,13 +11,65 @@ import (
 	"github.com/golang-jwt/jwt/v5" // Убедитесь, что используете jwt/v5
 )
 
-var jwtSecret = []byte(os.Getenv("JWT_SECRET"))
+var jwtSecret []byte // Эта переменная будет инициализирована извне
 
-func init() {
-	if len(jwtSecret) == 0 {
-		jwtSecret = []byte("super-secret-jwt-key-please-change-me")
-		log.Println("Предупреждение: JWT_SECRET не установлен в переменных окружения. Используется ключ по умолчанию.")
+// JWTClaims определяет структуру для кастомных утверждений в JWT
+type JWTClaims struct {
+	UserID string `json:"user_id"`
+	Role   string `json:"role"`
+	jwt.RegisteredClaims
+}
+
+// SetJWTSecret устанавливает секретный ключ JWT для этого пакета.
+// Эту функцию должен вызвать главный пакет (main.go) после загрузки .env.
+func SetJWTSecret(secret []byte) {
+	// Здесь можно добавить логирование, если секрет пустой,
+	// но основную проверку лучше оставить в main.go
+	jwtSecret = secret
+}
+
+// GenerateJWT генерирует JWT токен
+func GenerateJWT(userID, role string) (string, error) {
+	if len(jwtSecret) == 0 { // Важная проверка! Если секрет не установлен
+		return "", fmt.Errorf("JWT secret not initialized in utils package")
 	}
+	// ... остальной код GenerateJWT
+	expirationTime := time.Now().Add(24 * time.Hour)
+	claims := &JWTClaims{
+		UserID: userID,
+		Role:   role,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(expirationTime),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString(jwtSecret)
+}
+
+// ParseJWT парсит и валидирует JWT токен
+func ParseJWT(tokenString string) (*JWTClaims, error) {
+	if len(jwtSecret) == 0 { // Важная проверка!
+		return nil, fmt.Errorf("JWT secret not initialized in utils package")
+	}
+	// ... остальной код ParseJWT
+	token, err := jwt.ParseWithClaims(tokenString, &JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("неожиданный метод подписи: %v", token.Header["alg"])
+		}
+		return jwtSecret, nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	claims, ok := token.Claims.(*JWTClaims)
+	if !ok || !token.Valid {
+		return nil, fmt.Errorf("невалидный токен")
+	}
+	return claims, nil
 }
 
 // AuthMiddleware проверяет наличие и валидность JWT токена.

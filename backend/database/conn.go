@@ -3,6 +3,7 @@ package database
 import (
 	"fmt"
 	"log"
+	"nasty/models"
 	"os" // Импортируем os для работы с переменными окружения
 
 	"gorm.io/driver/postgres"
@@ -30,6 +31,12 @@ func InitDB() error {
 		// log.Fatal завершит программу сразу, что не всегда желательно.
 		return fmt.Errorf("failed to connect to database: %w", err)
 	}
+	err = DB.AutoMigrate(&models.Favorite{}, &models.User{}, &models.Card{}) // Добавь все модели, которые GORM должен мигрировать
+	if err != nil {
+		log.Fatalf("Ошибка при автоматической миграции базы данных: %v", err)
+	}
+
+	fmt.Println("Автоматическая миграция завершена успешно!")
 
 	log.Println("Database connection established successfully!")
 	return nil

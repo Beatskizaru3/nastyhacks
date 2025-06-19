@@ -8,6 +8,7 @@ import (
 	"nasty/database"
 	"nasty/models" // Убедитесь, что путь к вашей модели Card правильный
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -32,86 +33,52 @@ func AddToDb(item *models.Card) {
 	}
 }
 
-// DeleteFromDb удаляет запись из базы данных по её ID.
-func DeleteFromDb(cardID string) error {
+func DeleteFromDb(cardID uuid.UUID) error {
 	if database.DB == nil {
-		return fmt.Errorf("Ошибка: Подключение к базе данных (database.DB) не инициализировано. Убедитесь, что database.InitDB() успешно вызван в main().")
+		return fmt.Errorf("ошибка: подключение к базе данных не инициализировано")
 	}
 
-	// Создаем пустую модель Card, чтобы GORM знал, какую таблицу удалять.
-	// Используем Where для указания условия удаления по ID.
-	result := database.DB.Where("id = ?", cardID).Delete(&models.Card{})
-
+	// GORM должен уметь работать с uuid.UUID напрямую
+	result := database.DB.Delete(&models.Card{}, "id = ?", cardID)
 	if result.Error != nil {
-		return fmt.Errorf("Ошибка при удалении записи с ID %s: %w", cardID, result.Error)
+		return fmt.Errorf("ошибка при удалении карточки: %w", result.Error)
 	}
-
 	if result.RowsAffected == 0 {
-		return fmt.Errorf("Запись с ID %s не найдена для удаления", cardID)
+		return gorm.ErrRecordNotFound // Если ничего не удалилось, значит, карточка не найдена
 	}
-
-	fmt.Printf("Успешно удалено %d записей с ID %s\n", result.RowsAffected, cardID)
 	return nil
 }
 
 // UpdateInDb обновляет существующую запись в базе данных.
 // Принимает ID записи для обновления и указатель на структуру models.Card
 // с новыми значениями полей.
-func UpdateInDb(cardID string, updatedCard *models.Card) error {
+func UpdateInDb(cardID uuid.UUID, updatedCard *models.Card) error {
 	if database.DB == nil {
-		return fmt.Errorf("Ошибка: Подключение к базе данных (database.DB) не инициализировано. Убедитесь, что database.InitDB() успешно вызван в main().")
+		return fmt.Errorf("ошибка: подключение к базе данных не инициализировано")
 	}
 
-	// Сначала найдем существующую запись. Это хорошая практика,
-	// чтобы убедиться, что запись существует, и чтобы GORM мог
-	// эффективно обновить только измененные поля, если мы используем .Updates().
-	var existingCard models.Card
-	if err := database.DB.Where("id = ?", cardID).First(&existingCard).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			return fmt.Errorf("Запись с ID %s не найдена для обновления", cardID)
-		}
-		return fmt.Errorf("Ошибка при поиске записи с ID %s: %w", cardID, err)
-	}
-
-	// Обновляем поля существующей записи данными из updatedCard.
-	// Используем .Updates() для частичного обновления.
-	// GORM обновит только поля, которые не являются нулевыми значениями для их типа
-	// (например, пустая строка, 0, false). Если вам нужно обновить нулевые значения,
-	// используйте Map или Select.
-	result := database.DB.Model(&existingCard).Updates(updatedCard)
-
+	// GORM должен уметь работать с uuid.UUID напрямую
+	result := database.DB.Model(&models.Card{}).Where("id = ?", cardID).Updates(updatedCard)
 	if result.Error != nil {
-		return fmt.Errorf("Ошибка при обновлении записи с ID %s: %w", cardID, result.Error)
+		return fmt.Errorf("ошибка при обновлении карточки: %w", result.Error)
 	}
-
 	if result.RowsAffected == 0 {
-		// Это может произойти, если запись найдена, но никакие поля не изменились,
-		// или если GORM не смог найти запись для обновления (хотя мы уже проверили это выше).
-		return fmt.Errorf("Запись с ID %s найдена, но никаких изменений не было применено", cardID)
+		return gorm.ErrRecordNotFound // Если ничего не обновилось, значит, карточка не найдена
 	}
-
-	fmt.Printf("Успешно обновлено %d записей с ID %s\n", result.RowsAffected, cardID)
 	return nil
 }
 
 // GetCardByID возвращает одну карточку по её ID.
-func GetCardByID(cardID string) (*models.Card, error) {
+func GetCardByID(cardID uuid.UUID) (*models.Card, error) {
 	if database.DB == nil {
-		return nil, fmt.Errorf("Ошибка: Подключение к базе данных не инициализировано.")
+		return nil, fmt.Errorf("ошибка: подключение к базе данных не инициализировано")
 	}
-
 	var card models.Card
-	// First пытается найти первую запись, соответствующую условию.
-	// Если запись не найдена, First() вернет gorm.ErrRecordNotFound.
+	// GORM должен уметь работать с uuid.UUID напрямую
 	result := database.DB.Where("id = ?", cardID).First(&card)
-
 	if result.Error != nil {
-		if result.Error == gorm.ErrRecordNotFound {
-			return nil, fmt.Errorf("Карточка с ID %s не найдена", cardID)
-		}
-		return nil, fmt.Errorf("Ошибка при получении карточки с ID %s: %w", cardID, result.Error)
+		return nil, result.Error
 	}
-
 	return &card, nil
 }
 
@@ -149,7 +116,7 @@ func GetAllCards(options GetAllCardsOptions) ([]models.Card, error) {
 	if options.UploadDate != nil && *options.UploadDate != "" {
 		parsedDate, err := time.Parse("2006-01-02", *options.UploadDate)
 		if err != nil {
-			return nil, fmt.Errorf("Неверный формат даты для фильтрации: %s. Ожидается YYYY-MM-DD: %w", *options.UploadDate, err)
+			return nil, fmt.Errorf("Неверный формат даты для фильтрации: %s. ОжидаетсяYYYY-MM-DD: %w", *options.UploadDate, err)
 		}
 		startOfDay := parsedDate
 		endOfDay := parsedDate.Add(24 * time.Hour)
@@ -157,21 +124,18 @@ func GetAllCards(options GetAllCardsOptions) ([]models.Card, error) {
 	}
 
 	// --- Применение сортировки ---
-	orderBy := "uploaded_at desc" // Сортировка по умолчанию
-	order := "desc"
-	if options.SortOrder == "asc" {
-		order = "asc"
-	}
-
 	switch options.SortBy {
-	case "title":
-		orderBy = fmt.Sprintf("title %s", order)
-	case "download_count":
-		orderBy = fmt.Sprintf("download_count %s", order)
-	case "uploaded_at":
-		orderBy = fmt.Sprintf("uploaded_at %s", order)
+	case "oldest": // Старые сверху, нулевые даты в конце
+		query = query.Order("CASE WHEN uploaded_at = '0001-01-01 00:00:00+00' THEN 1 ELSE 0 END ASC, uploaded_at ASC")
+	case "downloads": // По убыванию загрузок
+		query = query.Order("download_count DESC")
+	case "recent": // Новые сверху (по умолчанию на фронтенде), нулевые даты в конце
+		query = query.Order("CASE WHEN uploaded_at = '0001-01-01 00:00:00+00' THEN 1 ELSE 0 END ASC, uploaded_at DESC")
+	default: // Если sortBy не указан или неизвестен, сортируем как recent
+		query = query.Order("CASE WHEN uploaded_at = '0001-01-01 00:00:00+00' THEN 1 ELSE 0 END ASC, uploaded_at DESC")
 	}
-	query = query.Order(orderBy)
+	// !!! ЭТУ СТРОКУ НАДО УДАЛИТЬ !!!
+	// query = query.Order(orderBy) // <--- УДАЛИ ЭТУ СТРОКУ
 
 	// --- Применение пагинации ---
 	if options.Limit > 0 {

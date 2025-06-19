@@ -2,103 +2,82 @@ package handlers
 
 import (
 	"fmt"
-	"log"
 	"net/http"
-	"os"
 	"time" // Используется для jwt.NewNumericDate
 
-	"nasty/database"
 	"nasty/models"
-	"nasty/utils"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5" // Правильный импорт для v5
 )
 
-// JWTSecret - секретный ключ для подписи JWT токенов.
-var jwtSecret = []byte(os.Getenv("JWT_SECRET"))
+var jwtSecret []byte // Эта переменная будет инициализирована извне
 
-func init() {
-	if len(jwtSecret) == 0 {
-		jwtSecret = []byte("super-secret-jwt-key-please-change-me")
-		log.Println("Предупреждение: JWT_SECRET не установлен в переменных окружения. Используется ключ по умолчанию.")
-	}
+// JWTClaims определяет структуру для кастомных утверждений в JWT
+type JWTClaims struct {
+	UserID string `json:"user_id"`
+	Role   string `json:"role"`
+	jwt.RegisteredClaims
 }
 
-// RegisterUserHandler обрабатывает запрос регистрации пользователя.
-func RegisterUserHandler(c *gin.Context) {
-	var input struct {
-		Username string `json:"username" binding:"required"`
-		Email    string `json:"email" binding:"required,email"`
-		Password string `json:"password" binding:"required,min=6"`
-	}
-
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	user := models.User{
-		Username: input.Username,
-		Email:    input.Email,
-		Password: input.Password,
-		Role:     "user",
-	}
-
-	if err := database.CreateUser(&user); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось зарегистрировать пользователя: " + err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusCreated, gin.H{"message": "Пользователь успешно зарегистрирован!"})
+// SetJWTSecret устанавливает секретный ключ JWT для этого пакета.
+// Эту функцию должен вызвать главный пакет (main.go) после загрузки .env.
+func SetJWTSecret(secret []byte) {
+	// Здесь можно добавить логирование, если секрет пустой,
+	// но основную проверку лучше оставить в main.go
+	jwtSecret = secret
 }
 
-// LoginUserHandler обрабатывает запрос логина пользователя и выдает JWT токен.
-func LoginUserHandler(c *gin.Context) {
-	var input struct {
-		Username string `json:"username" binding:"required"`
-		Password string `json:"password" binding:"required"`
-	}
+// GenerateJWT генерирует JWT токен
+func GenerateJWT(userID string, role string, username string) (string, error) { // <-- ДОБАВЛЕН username
+	expirationTime := time.Now().Add(24 * time.Hour)
 
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	user, err := database.GetUserByUsername(input.Username)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Неверное имя пользователя или пароль"})
-		return
-	}
-
-	if !utils.CheckPasswordHash(input.Password, user.Password) {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Неверное имя пользователя или пароль"})
-		return
-	}
-
-	// Генерация JWT токена
-	claims := models.UserClaims{
-		UserID:   user.ID,
-		Username: user.Username,
-		Role:     user.Role,
-		// ИСПРАВЛЕНИЕ: Используйте jwt.RegisteredClaims вместо jwt.StandardClaims
+	claims := &models.UserClaims{
+		UserID:   userID,
+		Role:     role,
+		Username: username, // <-- Теперь мы можем использовать username здесь!
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 24)), // Используйте NewNumericDate
-			IssuedAt:  jwt.NewNumericDate(time.Now()),                     // Используйте NewNumericDate
-			Issuer:    "nasty-app",
+			ExpiresAt: jwt.NewNumericDate(expirationTime),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}
 
-	// ИСПРАВЛЕНИЕ: Передайте УКАЗАТЕЛЬ на claims в NewWithClaims
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, &claims) // <-- Вот здесь было изменение
-	tokenString, err := token.SignedString(jwtSecret)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	tokenString, err := token.SignedString([]byte(jwtSecret))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Не удалось сгенерировать токен"})
-		return
+		return "", fmt.Errorf("не удалось подписать токен: %w", err)
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Успешный вход", "token": tokenString})
+	return tokenString, nil
 }
+
+// ParseJWT парсит и валидирует JWT токен
+func ParseJWT(tokenString string) (*JWTClaims, error) {
+	if len(jwtSecret) == 0 { // Важная проверка!
+		return nil, fmt.Errorf("JWT secret not initialized in utils package")
+	}
+	// ... остальной код ParseJWT
+	token, err := jwt.ParseWithClaims(tokenString, &JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("неожиданный метод подписи: %v", token.Header["alg"])
+		}
+		return jwtSecret, nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	claims, ok := token.Claims.(*JWTClaims)
+	if !ok || !token.Valid {
+		return nil, fmt.Errorf("невалидный токен")
+	}
+	return claims, nil
+}
+
+// RegisterUserHandler обрабатывает запрос регистрации пользователя.
+
+// LoginUserHandler обрабатывает запрос логина пользователя и выдает JWT токен.
 
 // AuthMiddleware проверяет наличие и валидность JWT токена.
 func AuthMiddleware() gin.HandlerFunc {

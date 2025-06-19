@@ -1,15 +1,44 @@
+// nasty/main.go
 package main
 
 import (
 	"log"
-	"net/http" // Добавил для http.StatusOK
+	"net/http"
+	"os"
+	"time"
 
 	"nasty/database"
 	"nasty/handlers"
 	"nasty/middleware"
+	"nasty/utils" // <-- Теперь импортируем utils
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 )
+
+func init() {
+	// Загружаем переменные окружения из файла .env ТОЛЬКО ЗДЕСЬ
+	err := godotenv.Load()
+	if err != nil {
+		log.Printf("Внимание: Не удалось загрузить файл .env. %v. Переменные окружения будут браться из системы.", err)
+	}
+
+	// Получаем JWT_SECRET после загрузки .env
+	secret := os.Getenv("JWT_SECRET")
+	if len(secret) == 0 {
+		log.Println("Предупреждение: JWT_SECRET не установлен. Используется ключ по умолчанию (НЕБЕЗОПАСНО ДЛЯ ПРОДАКШЕНА).")
+		secret = "super-secret-jwt-key-please-change-me" // Дефолтное значение для разработки
+	}
+
+	// Инициализируем секрет в пакетах, которым он нужен
+	utils.SetJWTSecret([]byte(secret))      // <-- Передаем секрет в utils
+	middleware.SetJWTSecret([]byte(secret)) // <-- Передаем секрет в middleware (если у него есть такой же SetSecret)
+	handlers.SetJWTSecret([]byte(secret))   // <-- Передаем секрет в handlers (если у него есть такой же SetSecret)
+
+	// Предполагается, что database.InitDB() не требует JWT_SECRET напрямую,
+	// а скорее переменные для подключения к БД, которые также будут в .env
+}
 
 func main() {
 	// Инициализация базы данных
@@ -19,53 +48,37 @@ func main() {
 
 	router := gin.Default()
 
-	// --- Публичные роуты (не требуют аутентификации) ---
-	// Соответствуют /login и /register на фронте
-	router.POST("/login", handlers.LoginUserHandler)       // LoginUserHandler вместо Login
-	router.POST("/register", handlers.RegisterUserHandler) // RegisterUserHandler вместо Register
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:3000"},                             // Разрешаем запросы только с этого источника
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},           // Разрешенные HTTP методы
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"}, // Разрешенные заголовки
+		ExposeHeaders:    []string{"Content-Length"},                                    // Заголовки, которые можно прочитать фронтенду
+		AllowCredentials: true,                                                          // Разрешаем отправку куки и заголовков авторизации
+		MaxAge:           12 * time.Hour,                                                // Время кэширования CORS-заголовков браузером
+	}))
 
-	// Роуты для отображения карточек (на главной странице и других категориях)
-	// Фронтенд использует / для HomePage, /exploits, /tools,
-	// которые, вероятно, запрашивают данные через /api/cards
-	// Мы оставляем /cards публичным для чтения, если нет нужды в аутентификации
-	router.GET("/cards/:id", handlers.GetCardByIDHandler) // Получение одной карточки по ID
-	router.GET("/cards", handlers.GetAllCardsHandler)     // Получение всех карточек (или фильтрованных по запросу)
+	router.POST("/login", handlers.LoginUserHandler)
+	router.POST("/register", handlers.RegisterUserHandler)
+	router.GET("/cards/:id", handlers.GetCardByIDHandler)
+	router.GET("/cards", handlers.GetAllCardsHandler)
 
-	// --- Защищенные роуты для аутентифицированных пользователей ---
-	// Соответствует /profile и CRUD-операциям с карточками
-	authorized := router.Group("/api")          // Все роуты начинаются с /api/
-	authorized.Use(middleware.AuthMiddleware()) // Применяем мидлвар аутентификации ко всей группе
+	authorized := router.Group("/api")
+	authorized.Use(middleware.AuthMiddleware())
 	{
-		// Роут для профиля пользователя
-		// Соответствует /profile на фронте
-		authorized.GET("/profile", handlers.Profile) // handlers.Profile уже должен быть настроен для получения данных профиля
-
-		// Роуты для добавления/удаления карточек из избранного
-		// Соответствует /profile/favorite/:cardId на фронте
+		authorized.GET("/profile", handlers.Profile)
 		authorized.POST("/profile/favorite/:cardId", handlers.ToggleFavoriteHandler)
 
-		// Роуты для CRUD операций с карточками (доступны всем аутентифицированным пользователям)
-		// Соответствуют /cards, /cards/:id на фронте, но с POST/PUT/DELETE
-		authorized.POST("/cards", handlers.CreateCardHandler)
-		authorized.PUT("/cards/:id", handlers.UpdateCardHandler)
+	}
+
+	admin := authorized.Group("/admin")
+	admin.Use(middleware.AuthorizeRole("admin"))
+	{
+		admin.GET("/users", handlers.GetUsersHandler)
+		admin.PUT("/cards/:id", handlers.UpdateCardHandler)
+		admin.POST("/cards", handlers.CreateCardHandler)
 		authorized.DELETE("/cards/:id", handlers.DeleteCardHandler)
 	}
 
-	// --- Роуты для администраторов ---
-	// Соответствует /admin/* на фронте
-	// Эта группа наследует AuthMiddleware от родительской группы "/api"
-	// и добавляет AuthorizeRole("admin") для проверки специфичной роли.
-	admin := authorized.Group("/admin")          // /api/admin
-	admin.Use(middleware.AuthorizeRole("admin")) // Применяем мидлвар для админов
-	{
-		// Получение списка всех пользователей
-		// Соответствует /admin/users на фронте
-		admin.GET("/users", handlers.GetUsersHandler)
-		// Здесь можно добавить другие роуты, доступные только администраторам
-		// например, admin.DELETE("/users/:id", handlers.DeleteUserHandler)
-	}
-
-	// Пример простого пинг-роута для проверки работоспособности
 	router.GET("/ping", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"message": "pong"})
 	})

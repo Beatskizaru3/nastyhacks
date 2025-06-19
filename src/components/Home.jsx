@@ -1,52 +1,68 @@
+// src/components/HomePage.jsx
 import Card from './Card';
 import { useState, useEffect, useRef } from "react";
-import { useClickOutside } from '../hooks/useClickOutside';
-import { Link } from "react-router-dom";
-import { useAuth } from '../context/AuthContext'; 
+// ОБНОВЛЕНО: Добавлен useLocation из react-router-dom
+import { useClickOutside } from '../hooks/useClickOutside'; 
+import { Link, useLocation } from "react-router-dom"; 
+import { useAuth } from '../context/AuthContext';
+import '../styles/main.scss'; // Убедись, что стили для HomePage импортированы
 
 const CARDS_PER_LOAD = 9;
 
 function HomePage({ isCardDetailPage, customLoadButton, customTitle, tagId }) {
+  // *** ВСЕ ВЫЗОВЫ ХУКОВ ДОЛЖНЫ БЫТЬ ЗДЕСЬ, ВНАЧАЛЕ КОМПОНЕНТА ***
   const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
 
-  // Функцию fetchCards можно сделать более универсальной
-  const fetchCards = async (pageNumber) => {
+  const [sortBy, setSortBy] = useState('recent');
+  // Логика для фильтра
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const filterRef = useRef(null);
+  useClickOutside(filterRef, () => setIsFilterOpen(false));
+
+  // ОБНОВЛЕНО: Получаем объект location с помощью хука useLocation()
+  const location = useLocation(); 
+
+  // *** КОНЕЦ БЛОКА ВЫЗОВОВ ХУКОВ ***
+
+  // Эта функция будет использоваться для первой загрузки и для "Load More"
+  // Ее можно переименовать или сделать внутренней для useEffect
+  const fetchCardsData = async (pageNumber, currentSortBy, currentTagId) => { // ОБНОВЛЕНО: Параметры для сортировки и tagId
+    console.log('fetchCardsData вызвана с pageNumber:', pageNumber, 'sortBy:', currentSortBy, 'tagId:', currentTagId);
     try {
       setLoading(true);
       setError(null);
 
-      // Формируем URL запроса с учетом tagId, пагинации и т.д.
-      // Допустим, ваш API принимает limit и offset
-      const limit = 10;
+      const limit = CARDS_PER_LOAD; // Используем константу
       const offset = (pageNumber - 1) * limit;
-      let url = `/api/cards?limit=${limit}&offset=${offset}`;
+      let url = `/cards?limit=${limit}&offset=${offset}&sortBy=${currentSortBy}`; 
 
-      if (tagId) {
-        url += `&tagId=${tagId}`;
+      if (currentTagId) { // Используем currentTagId
+        url += `&tagId=${currentTagId}`;
       }
-      // Можно добавить sortBy, sortOrder, search и другие параметры
 
       const response = await fetch(url);
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`HTTP error! Status: ${response.status}. Response: ${errorText}`);
       }
-      const data = await response.json(); // Ожидаем { cards: [], totalCount: 0 }
+      const data = await response.json();
 
+      // Если это первая страница, заменяем все карточки.
+      // Иначе добавляем к существующим.
       setCards(prevCards => {
+        if (pageNumber === 1) {
+          return data.cards || [];
+        }
         const newCards = data.cards;
-        // Фильтруем дубликаты, если есть (если ID уникальны)
         const uniqueNewCards = newCards.filter(
-          newCard => !prevCards.some(existingCard => existingCard.id === newCard.id)
+          newCard => !prevCards.some(existingCard => existingCard.ID === newCard.ID)
         );
         return [...prevCards, ...uniqueNewCards];
       });
-
-      // Проверяем, есть ли еще данные для загрузки
       setHasMore(data.cards.length === limit);
 
     } catch (err) {
@@ -56,59 +72,92 @@ function HomePage({ isCardDetailPage, customLoadButton, customTitle, tagId }) {
     }
   };
 
+  // ЭФФЕКТ ДЛЯ ПЕРВОНАЧАЛЬНОЙ ЗАГРУЗКИ / СМЕНЫ МАРШРУТА / СОРТИРОВКИ
   useEffect(() => {
-    setCards([]); // Очищаем карточки при изменении tagId (или при первом рендере)
-    setPage(1); // Сбрасываем страницу
-    setHasMore(true); // Сбрасываем флаг "есть еще"
-    fetchCards(1); // Загружаем первую страницу
-  }, [tagId]); // Перезагружаем при изменении tagId (т.е. при переходе между / и /exploits)
+    // Сброс состояния при смене tagId (маршрута) или sortBy
+    setCards([]);       // Очищаем карточки
+    setPage(1);         // Сбрасываем страницу на первую
+    setHasMore(true);   // Сбрасываем флаг "есть ещё"
+    // Загружаем данные для первой страницы с текущей сортировкой и tagId
+    fetchCardsData(1, sortBy, tagId); 
+  }, [tagId, sortBy, location.pathname]); // ОБНОВЛЕНО: location.pathname в зависимостях
 
   const handleLoadMore = () => {
     if (!loading && hasMore) {
-      setPage(prevPage => prevPage + 1);
-      fetchCards(page + 1);
+      const nextPage = page + 1;
+      setPage(nextPage);
+      fetchCardsData(nextPage, sortBy, tagId); // Передаем текущие sortBy и tagId
     }
   };
 
-  if (loading && cards.length === 0) {
-    return <div className="container">Загрузка карточек...</div>;
+  const handleSortChange = (sortOption) => {
+    // Если выбран тот же вариант сортировки, ничего не делаем
+    if (sortBy === sortOption) {
+      setIsFilterOpen(false);
+      return;
+    }
+    setSortBy(sortOption);     // Устанавливаем новое значение сортировки
+    // useEffect выше сработает и перезагрузит данные с page=1
+    setIsFilterOpen(false);    // Закрываем меню фильтрации после выбора
+  };
+
+  const toggleFilter = () => { 
+    setIsFilterOpen(prev => !prev);
+  };
+
+  // Условные рендеры (ранние возвраты)
+  if (loading && cards.length === 0) { // Показываем загрузку, только если карточек ещё нет
+    return <div className="main container">Загрузка карточек...</div>;
   }
 
   if (error) {
-    return <div className="container">Ошибка: {error}</div>;
+    return <div className="main container error-message">Ошибка: {error}</div>;
   }
 
-  if (cards.length === 0 && !loading) {
-    return <div className="container">Карточки не найдены.</div>;
+  if (cards.length === 0 && !loading) { // Показываем "нет карточек" только после загрузки
+    return <div className="main container">Карточки не найдены.</div>;
   }
 
   return (
-    <div className="home-page container">
-      {/* ... ваш остальной JSX код HomePage */}
-      <h2 className="section__title">{customTitle}</h2>
-      <div className="card-grid">
-        {cards.map(card => (
-          <div key={card.id} className="card">
-            <img src={card.imgPath} alt={card.title} className="card__image" />
-            <div className="card__body">
-              <span className="card__tag">Script</span> {/* Здесь можно отобразить actual tag name */}
-              <h3 className="card__title">{card.title}</h3>
-              <p className="card__description">{card.description}</p>
-              <div className="card__stats">
-                {/* SVG и другие элементы */}
-                <span>{card.downloadCount}</span>
-                <span>{new Date(card.uploadedAt).toLocaleDateString()}</span>
-              </div>
-              <div className="card__buttons">
-                <button>Get</button>
-                {/* Кнопка избранного, аналогично CardDetail */}
-              </div>
-            </div>
+    <div className="main container">
+      <div className="main__top">
+        <h2 className="main__top-title">{customTitle}</h2>
+        <div className="main__top-filter" ref={filterRef}>
+          <button className="main__top-filter-button" onClick={toggleFilter}>
+            Filter
+            <svg className="main__top-filter-button-svg" width="24px" height="24px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M6 12H18M3 6H21M9 18H15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          <div className={`main__top-filter-body ${isFilterOpen ? 'active' : ''}`}>
+            <ul className="main__top-filter-list">
+              <li className="main__top-filter-item" onClick={() => handleSortChange('recent')}>Recent</li>
+              <li className="main__top-filter-item" onClick={() => handleSortChange('oldest')}>Oldest</li>
+              <li className="main__top-filter-item" onClick={() => handleSortChange('downloads')}>Most Downloaded</li>
+            </ul>
           </div>
-        ))}
+        </div>
+      </div>
+      <div className="main__cards">
+        {cards.map(card => {
+          const isDateUnknown = card.UploadedAt === "0001-01-01T00:00:00Z";
+
+          if (isDateUnknown) {
+            return null;
+          }
+          return(
+            <Card
+            key={card.ID}
+            card={card}
+            // isFavorite={checkIfFavorite(card.ID)} // Эти пропсы пока закомментированы
+            // toggleFavorite={handleToggleFavorite} // Эти пропсы пока закомментированы
+            disableFavorite={false}
+          />
+          )
+})}
       </div>
       {hasMore && (
-        <button onClick={handleLoadMore} disabled={loading} className="load-more-button">
+        <button onClick={handleLoadMore} disabled={loading} className="main__load-button">
           {loading ? 'Загрузка...' : customLoadButton}
         </button>
       )}

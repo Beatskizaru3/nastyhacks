@@ -1,3 +1,5 @@
+// src/App.js (ВОЗВРАЩАЕМ В НОРМАЛЬНОЕ СОСТОЯНИЕ)
+import React, { useEffect } from 'react';
 import './index.scss';
 import './styles/normalize.scss';
 import './styles/media.scss';
@@ -9,111 +11,107 @@ import './styles/footer.scss';
 
 import './styles/cardInfo.scss';
 
-import { Route, Routes, BrowserRouter, Navigate } from 'react-router-dom';
+import { Route, Routes, BrowserRouter, Navigate, useLocation } from 'react-router-dom'; 
 import Header from './components/Header';
-import HomePage from './components/Home'; // Убедитесь, что это Home, а не HomePage в пути
+import HomePage from './components/Home';
 import CardDetail from './components/CardDetail';
 import LoginPage from './pages/loginPage';
 import RegisterPage from './pages/registerPage';
-import ProfilePage from './components/ProfilePage';
+import ProfilePage from './components/ProfilePage'; // Теперь это будет "заглушка" ProfilePage
 import AdminRoutes from './admin/AdminRoutes';
 
 import { AuthProvider, useAuth } from './context/AuthContext';
 
-// Обертка для защиты маршрутов
 const ProtectedRoute = ({ children }) => {
+  
   const { user, isLoading } = useAuth();
+  console.log('ProtectedRoute: Рендер. user:', user ? user.Username : 'null', 'isLoading:', isLoading);
 
   if (isLoading) {
+    console.log('ProtectedRoute: Загрузка авторизации...');
     return <div>Authorization in progress...</div>;
   }
 
   if (!user) {
+    console.log('ProtectedRoute: Пользователь не авторизован, перенаправление на /login');
     return <Navigate to="/login" replace />;
   }
 
+  console.log('ProtectedRoute: Пользователь авторизован, рендер дочерних элементов.');
   return children;
 };
 
-function App() {
+function AppRoutes() {
+  const location = useLocation();
+  console.log('AppRoutes: Рендер. Текущий путь:', location.pathname);
+
+  useEffect(() => {
+    console.log('AppRoutes: Монтирование.');
+    return () => {
+      console.log('AppRoutes: Размонтирование.');
+    };
+  }, []);
+
   return (
-    <>
-      <BrowserRouter>
-        <AuthProvider>
-          <Header />
-          <Routes>
-            {/* HomePage теперь будет загружать данные сама */}
-            <Route
-              path="/"
-              element={
-                <HomePage
-                  isCardDetailPage={false}
-                  customLoadButton="View More"
-                  customTitle="Recent Scripts"
-                  // Больше НЕ передаем cardsData! HomePage будет запрашивать их сама.
-                  // При желании, можно добавить prop 'tagId' для фильтрации, если HomePage будет его использовать
-                  // tagId={1} // Пример: если 1 это ID для скриптов
-                />
-              }
-            />
+    <Routes location={location} key={location.pathname}> 
+      <Route
+        path="/"
+        element={<HomePage customTitle="Recent Scripts" tagId={1} key={location.pathname} />}
+      />
+      <Route
+        path="/exploits"
+        element={<HomePage customTitle="Recent Exploits" tagId={2} key={location.pathname} />}
+      />
+      <Route
+        path="/tools"
+        element={<HomePage customTitle="Recent Tools" tagId={3} key={location.pathname} />}
+      />
+      <Route path="/card/:id" element={<CardDetail key={location.pathname} />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
 
-            <Route
-              path="/exploits"
-              element={
-                <HomePage
-                  isCardDetailPage={false}
-                  customLoadButton="View More"
-                  customTitle="Recent Exploits"
-                  // tagId={2} // Пример: если 2 это ID для эксплоитов
-                />
-              }
-            />
+      {/* ВОЗВРАЩАЕМ ProfilePage на его маршрут и с ProtectedRoute */}
+      <Route
+        path="/profile"
+        element={
+            <ProtectedRoute>
+                <ProfilePage /> 
+            </ProtectedRoute>
+        }
+      />
 
-            <Route
-              path="/tools"
-              element={
-                <HomePage
-                  isCardDetailPage={false}
-                  customLoadButton="View More"
-                  customTitle="Recent Tools"
-                  // tagId={3} // Пример: если 3 это ID для инструментов
-                />
-              }
-            />
+      <Route path="/admin/*" element={<AdminRoutes />} />
+    </Routes>
+  );
+}
 
-            {/* CardDetail также загружает данные сам по id */}
-            <Route path="/card/:id" element={<CardDetail />} />
+function App() {
+  console.log('App: Рендер');
+  useEffect(() => {
+    console.log('App: Монтирование');
+    return () => {
+      console.log('App: Размонтирование');
+    };
+  }, []);
 
-            <Route path="/login" element={<LoginPage />} />
-
-            <Route path="/register" element={<RegisterPage />} />
-
-            {/* Активируем ProtectedRoute для страницы профиля */}
-            <Route
-              path="/profile"
-              element={
-                <ProtectedRoute>
-                  <ProfilePage />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route path="/admin/*" element={<AdminRoutes />} />
-          </Routes>
-          <footer className="footer container">
-            <p className="footer__creds">Made with ❤ by boundless_sv for ScriptRB. All rights reserved.</p>
-            <div className="footer__useful">
-              <span>
-                <a href="#">Privacy Policy</a>
-              </span>
-              <span>
-                <a href="#">Type of Service</a>
-              </span>
-            </div>
-          </footer>
-        </AuthProvider>
-      </BrowserRouter>
-    </>
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <Header />
+        <AppRoutes /> 
+        <footer className="footer container">
+          <p className="footer__creds">Made with ❤ by boundless_sv for ScriptRB. All rights reserved.</p>
+          <div className="footer__useful">
+            <span>
+              <a href="#">Privacy Policy</a>
+            </span>
+            <span>
+              <a href="#">Type of Service</a>
+            </span>
+          </div>
+        </footer>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
 
