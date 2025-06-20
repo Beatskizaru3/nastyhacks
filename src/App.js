@@ -56,15 +56,15 @@ function AppRoutes() {
     <Routes location={location} key={location.pathname}> 
       <Route
         path="/"
-        element={<HomePage customTitle="Recent Scripts" tagId={1} key={location.pathname} />}
+        element={<HomePage customLoadButton={"Load More"} customTitle="Recent Scripts" tagId={1} key={location.pathname} />}
       />
       <Route
         path="/exploits"
-        element={<HomePage customTitle="Recent Exploits" tagId={2} key={location.pathname} />}
+        element={<HomePage  customLoadButton={"Load More"} customTitle="Recent Exploits" tagId={2} key={location.pathname} />}
       />
       <Route
         path="/tools"
-        element={<HomePage customTitle="Recent Tools" tagId={3} key={location.pathname} />}
+        element={<HomePage customLoadButton={"Load More"} customTitle="Recent Tools" tagId={3} key={location.pathname} />}
       />
       <Route path="/card/:id" element={<CardDetail key={location.pathname} />} />
       <Route path="/login" element={<LoginPage />} />

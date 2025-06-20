@@ -7,9 +7,11 @@ import { Link, useLocation } from "react-router-dom";
 import { useAuth } from '../context/AuthContext';
 import '../styles/main.scss'; // Убедись, что стили для HomePage импортированы
 
+
 const CARDS_PER_LOAD = 9;
 
 function HomePage({ isCardDetailPage, customLoadButton, customTitle, tagId }) {
+  const { favoritedIds, toggleFavorite, user, isLoading: authLoading } = useAuth();
   // *** ВСЕ ВЫЗОВЫ ХУКОВ ДОЛЖНЫ БЫТЬ ЗДЕСЬ, ВНАЧАЛЕ КОМПОНЕНТА ***
   const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -26,10 +28,7 @@ function HomePage({ isCardDetailPage, customLoadButton, customTitle, tagId }) {
   // ОБНОВЛЕНО: Получаем объект location с помощью хука useLocation()
   const location = useLocation(); 
 
-  // *** КОНЕЦ БЛОКА ВЫЗОВОВ ХУКОВ ***
-
-  // Эта функция будет использоваться для первой загрузки и для "Load More"
-  // Ее можно переименовать или сделать внутренней для useEffect
+  
   const fetchCardsData = async (pageNumber, currentSortBy, currentTagId) => { // ОБНОВЛЕНО: Параметры для сортировки и tagId
     console.log('fetchCardsData вызвана с pageNumber:', pageNumber, 'sortBy:', currentSortBy, 'tagId:', currentTagId);
     try {
@@ -90,6 +89,18 @@ function HomePage({ isCardDetailPage, customLoadButton, customTitle, tagId }) {
     }
   };
 
+  if (loading && cards.length === 0) {
+    return <div className="main container">Загрузка карточек...</div>;
+  }
+
+  if (error) {
+    return <div className="main container error-message">Ошибка: {error}</div>;
+  }
+
+  if (cards.length === 0 && !loading) {
+    return <div className="main container">Карточки не найдены.</div>;
+  }
+  
   const handleSortChange = (sortOption) => {
     // Если выбран тот же вариант сортировки, ничего не делаем
     if (sortBy === sortOption) {
@@ -149,9 +160,9 @@ function HomePage({ isCardDetailPage, customLoadButton, customTitle, tagId }) {
             <Card
             key={card.ID}
             card={card}
-            // isFavorite={checkIfFavorite(card.ID)} // Эти пропсы пока закомментированы
-            // toggleFavorite={handleToggleFavorite} // Эти пропсы пока закомментированы
-            disableFavorite={false}
+            isFavorite={favoritedIds.includes(card.ID)} // Используем favoritedIds из контекста
+              toggleFavorite={toggleFavorite} // Используем toggleFavorite из контекста
+              disableFavorite={!user || authLoading} // Отключаем кнопку, если не авторизован или данные грузятся
           />
           )
 })}

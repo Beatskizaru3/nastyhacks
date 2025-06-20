@@ -1,4 +1,5 @@
 @use './variables.scss' as *;
+@use './media.scss' as *;
 
 .profile {
     display: flex;
@@ -15,6 +16,7 @@
         justify-content: start;
         padding: 20px 80px 20px 20px;
         flex-direction: row;
+        
         column-gap: 30px;
         border-radius: 20px;
         border: 2px solid $color-accent;
@@ -22,4 +24,92 @@
         width: fit-content; // Позволяет элементу занимать ширину по содержимому
         
     }
+
+    &__header{
+        
+        
+        display: flex;
+        width: 100%; 
+        justify-content: space-between;
+        flex-direction: row;
+        align-items: center;
+        button{
+            border: none;
+        background: transparent;
+        padding: 0;
+        margin: 0;
+        font-size: inherit;
+        cursor: pointer; 
+
+        margin-top: 20px;
+        font-size: 20px;
+        color: $color-text;
+        padding: 0.5em;
+        border-radius: 15px;
+        border: 1px solid $color-accent;
+        background-color: $color-accent;
+
+        transition: background-color 0.3s ease; /* Smooth transition */
+            &:hover{
+                background-color: $color-bg;
+                color: white;
+                
+            }
+    
+        }
+    }
+
+    &__favorites{
+        width: 100%;
+    }
+
+    &__cards{
+        // --- ИЗМЕНЕНИЯ ЗДЕСЬ ---
+        display: flex;                   /* Используем Flexbox */
+        flex-wrap: nowrap;               /* ЗАПРЕЩАЕМ перенос на новую строку */
+        overflow-x: auto;                /* Включаем горизонтальный скролл, если контент не помещается */
+        -webkit-overflow-scrolling: touch; /* Улучшает скролл на iOS */
+        
+        column-gap: 40px;                /* Расстояние между карточками по горизонтали */
+        // row-gap: 40px;                 /* Это больше не нужно для горизонтального ряда */
+
+        padding-bottom: 20px;            /* Отступ для полосы прокрутки, чтобы контент не перекрывался */
+
+        .main__card { /* Стилизуем карточку, когда она находится внутри profile__cards */
+            flex-shrink: 0; /* ЗАПРЕЩАЕМ карточкам сжиматься */
+            // Если у тебя уже есть width в main.scss, здесь можно не задавать его
+            // Но убедись, что width задан в main.scss для .main__card
+        }
+        // Стилизация полосы прокрутки (опционально, только для WebKit-браузеров)
+        &::-webkit-scrollbar {
+            height: 10px; /* Высота полосы прокрутки */
+        }
+
+        &::-webkit-scrollbar-track {
+            background: $color-card; /* Фон дорожки прокрутки */
+            border-radius: 5px;
+        }
+
+        &::-webkit-scrollbar-thumb {
+            background: $color-accent; /* Цвет самого ползунка */
+            border-radius: 5px;
+        }
+
+        &::-webkit-scrollbar-thumb:hover {
+            background: darken($color-accent, 10%); /* Цвет ползунка при наведении */
+        }
+        // --- КОНЕЦ ИЗМЕНЕНИЙ ---
+
+        // Медиа-запросы для индивидуальной ширины карточек останутся в main.scss
+        // Для адаптивности, убедись, что `.main__card` имеет фиксированную ширину
+        // или `min-width`, чтобы flex-элементы не сжимались слишком сильно.
+
+        // Пример: если у тебя есть `.main__card` в main.scss
+        // .main__card {
+        //     min-width: 300px; // Или фиксированная ширина, чтобы карточки не сжимались
+        //     width: 300px; // Если ты хочешь точно контролировать ширину
+        //     // ... остальные стили карточки
+        // }
+    }
+
 }

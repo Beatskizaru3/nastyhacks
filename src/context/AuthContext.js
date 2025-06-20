@@ -1,4 +1,6 @@
 import React, { useState, createContext, useEffect, useContext, useCallback } from 'react';
+// УБЕДИТЕСЬ, ЧТО ИМПОРТА useNavigate ЗДЕСЬ НЕТ, так как AuthProvider не является прямым потомком <Router>
+// import { useNavigate } from 'react-router-dom'; 
 
 const AuthContext = createContext(null);
 
@@ -18,9 +20,10 @@ const decodeJwt = (token) => {
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [token, setToken] = useState(localStorage.getItem('token'));
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(true); // Состояние загрузки AuthContext (для инициализации)
     const [favoritedIds, setFavoritedIds] = useState([]);
 
+    // Логика выхода из системы
     const logout = useCallback(() => {
         setUser(null);
         setToken(null);
@@ -28,33 +31,39 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('token');
         localStorage.removeItem('user'); 
         localStorage.removeItem('favoritedIds'); 
+        // Перенаправление после выхода должно происходить в компоненте, который вызывает logout (например, ProfilePage)
     }, []); 
 
+    // useEffect для первоначальной загрузки данных пользователя и избранного при монтировании AuthProvider
+    // или при изменении токена (например, после входа или обновления страницы)
     useEffect(() => {
         const loadUserData = async () => {
             if (token) {
                 try {
-                    setIsLoading(true);
+                    setIsLoading(true); // Начинаем загрузку
+
                     // 1. Извлекаем базовые данные пользователя непосредственно из токена
                     const decodedToken = decodeJwt(token);
+                    // Проверяем, что токен декодирован и содержит необходимые поля
                     if (decodedToken && decodedToken.username && decodedToken.role) {
                         const currentUser = {
                             ID: decodedToken.user_id,
-                            Username: decodedToken.username,
-                            Role: decodedToken.role,
-                            // Если email есть в токене, добавь: Email: decodedToken.email || '',
+                            Username: decodedToken.username, // <--- ИСПОЛЬЗУЕМ username (строчные буквы)
+                            Role: decodedToken.role,         // <--- ИСПОЛЬЗУЕМ role (строчные буквы)
                         };
-                        setUser(currentUser);
+                        setUser(currentUser); // Устанавливаем пользователя в состояние
                         localStorage.setItem('user', JSON.stringify(currentUser)); 
-                        console.log('Пользователь загружен из токена:', currentUser);
+                        console.log('AuthContext: Пользователь загружен из токена:', currentUser);
                     } else {
-                        console.error('Токен не содержит необходимых данных пользователя (username/role). Выход.');
+                        // Если токен невалиден или не содержит нужных полей, выходим из системы
+                        console.error('AuthContext: Токен не содержит необходимых данных пользователя (username/role). Выход.');
                         logout(); 
-                        return;
+                        setIsLoading(false); // Завершаем загрузку даже при ошибке
+                        return; // Прекращаем выполнение
                     }
 
                     // 2. Запрашиваем избранное с бэкенда через защищенный маршрут
-                    const profileResponse = await fetch('/api/profile', { // Маршрут для получения профиля и избранного
+                    const profileResponse = await fetch('/api/profile', { // Убедитесь, что это правильный эндпоинт для профиля/избранного
                         method: 'GET',
                         headers: {
                             'Content-Type': 'application/json',
@@ -64,27 +73,31 @@ export const AuthProvider = ({ children }) => {
 
                     if (profileResponse.ok) {
                         const profileData = await profileResponse.json();
-                        // Убедись, что твой бэкенд возвращает favoritedIds в этом ответе
-                        setFavoritedIds(profileData.favoritedIds || []);
-                        console.log('Избранное загружено из /api/profile.');
+                        // Убедитесь, что ваш бэкенд возвращает избранные ID в поле 'favorites'
+                        setFavoritedIds(profileData.favorites || []);
+                        console.log('AuthContext: favoritedIds установлен в:', profileData.favorites);
+                        console.log('AuthContext: Избранное загружено из /api/profile.');
                     } else if (profileResponse.status === 401 || profileResponse.status === 403) {
-                        console.error('Ошибка аутентификации/авторизации при загрузке профиля. Выход.');
+                        // Если токен просрочен или невалиден на сервере
+                        console.error('AuthContext: Ошибка аутентификации/авторизации при загрузке профиля. Выход.');
                         logout();
                     } else {
-                        console.error('Ошибка загрузки профиля (не 2xx, не 401/403):', profileResponse.status, profileResponse.statusText);
+                        // Другие ошибки при загрузке профиля
+                        console.error('AuthContext: Ошибка загрузки профиля (не 2xx, не 401/403):', profileResponse.status, profileResponse.statusText);
                         const errorData = await profileResponse.json();
-                        console.error('Детали ошибки профиля:', errorData);
+                        console.error('AuthContext: Детали ошибки профиля:', errorData);
                         logout();
                     }
 
                 } catch (error) {
-                    console.error('Сетевая ошибка при загрузке данных/профиля:', error);
+                    // Обработка сетевых ошибок или ошибок парсинга JWT
+                    console.error('AuthContext: Сетевая ошибка при загрузке данных/профиля или ошибка декодирования токена:', error);
                     logout();
                 } finally {
-                    setIsLoading(false);
+                    setIsLoading(false); // Всегда завершаем загрузку
                 }
             } else {
-                // Если токена нет изначально, просто сбросим состояние
+                // Если токена нет изначально (пользователь не залогинен), просто сбрасываем состояние и завершаем загрузку
                 setUser(null);
                 setFavoritedIds([]);
                 localStorage.removeItem('user');
@@ -92,28 +105,46 @@ export const AuthProvider = ({ children }) => {
             }
         };
 
-        loadUserData();
-    }, [token, logout]); 
+        loadUserData(); // Вызываем функцию загрузки данных
+
+    }, [token, logout]); // Зависимости: токен (для повторной загрузки при изменении) и logout (для использования в колбэке)
 
     // Функция для входа пользователя
-    const login = useCallback((newToken) => {
-        const decodedToken = decodeJwt(newToken);
-        if (decodedToken && decodedToken.username && decodedToken.role) {
-            const currentUser = {
-                ID: decodedToken.user_id,
-                Username: decodedToken.username,
-                Role: decodedToken.role,
-                // Добавь email, если он есть в токене: Email: decodedToken.email || '',
-            };
-            setUser(currentUser);
-            setToken(newToken);
-            localStorage.setItem('token', newToken);
-            localStorage.setItem('user', JSON.stringify(currentUser)); 
-            console.log('Login successful. User data set from token:', currentUser);
-            // useEffect выше сработает и загрузит favoritedIds
-        } else {
-            console.error('Неверный формат токена или отсутствуют данные пользователя (username/role) для логина.');
-            logout();
+    // Теперь она принимает username и password, выполняет fetch-запрос и сохраняет токен.
+    // Перенаправление происходит в LoginPage.jsx
+    const login = useCallback(async (newToken) => { // <-- ПРИНИМАЕТ ТОКЕН!
+        setIsLoading(true); // Начинаем загрузку при попытке логина
+        try {
+            // *** УДАЛЯЕМ ОТСЮДА fetch-ЗАПРОС ***
+            // Он уже сделан в LoginPage.jsx
+
+            const decodedToken = decodeJwt(newToken);
+            if (decodedToken && decodedToken.username && decodedToken.role) {
+                const currentUser = {
+                    ID: decodedToken.user_id,
+                    Username: decodedToken.username, 
+                    Role: decodedToken.role,         
+                };
+                setUser(currentUser);
+                setToken(newToken);   
+                localStorage.setItem('token', newToken); 
+                localStorage.setItem('user', JSON.stringify(currentUser)); 
+                console.log('AuthContext: Успешный вход. Данные пользователя установлены из токена:', currentUser);
+                
+                setFavoritedIds([]); // Пусто, если нет /api/profile
+
+                return currentUser; 
+            } else {
+                console.error('AuthContext: Неверный формат токена или отсутствуют данные пользователя (username/role) для логина.');
+                logout(); 
+                throw new Error('Invalid token format or user data missing.');
+            }
+        } catch (error) {
+            console.error('AuthContext: Ошибка обработки токена входа:', error); // Обновил сообщение
+            logout(); 
+            throw error; 
+        } finally {
+            setIsLoading(false); 
         }
     }, [logout]); 
 
@@ -141,7 +172,6 @@ export const AuthProvider = ({ children }) => {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`,
                 },
-                // Тело запроса не требуется, если бэкенд берет cardId из URL и сам определяет, добавить или удалить
             });
 
             if (!response.ok) {
@@ -154,10 +184,10 @@ export const AuthProvider = ({ children }) => {
                 const errorData = await response.json();
                 throw new Error(errorData.message || `Ошибка сервера: ${response.status}`);
             }
-            console.log(`Статус избранного для карточки ${cardId} успешно обновлен на сервере.`);
+            console.log(`AuthContext: Статус избранного для карточки ${cardId} успешно обновлен на сервере.`);
 
         } catch (error) {
-            console.error('Ошибка при синхронизации избранного с бэкендом:', error);
+            console.error('AuthContext: Ошибка при синхронизации избранного с бэкендом:', error);
             // Откат локальных изменений при сетевой ошибке
             setFavoritedIds(prevFavorites =>
                 isCurrentlyFavorited

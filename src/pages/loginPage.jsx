@@ -1,35 +1,41 @@
+// src/pages/Auth/LoginPage.jsx (или как у тебя называется страница входа)
+
 import '../styles/loginPage.scss';
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext'; // <-- Убедись, что этот путь правильный, или измени на '../AuthContext'
+import { useAuth } from '../context/AuthContext'; // <-- Убедись, что этот путь правильный
 
 function LoginPage() {
     const [identifier, setIdentifier] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
-    const navigate = useNavigate();
-    const { login, user } = useAuth(); // Получаем функцию `login` из контекста
+    
+    const navigate = useNavigate(); // <-- ОДНОКРАТНАЯ ИНИЦИАЛИЗАЦИЯ navigate
+    const { login, user, isLoading: authContextLoading } = useAuth(); // Получаем функцию `login` и `user` из контекста, а также `isLoading` для учета загрузки контекста
 
+    // useEffect для перенаправления ПОСЛЕ того, как AuthContext обновит `user`
     useEffect(() => {
-        // Этот useEffect в LoginPage предназначен для перенаправления ПОСЛЕ того, как AuthContext обновит `user`
-        if (user) {
-            console.log('LoginPage useEffect: Пользователь обнаружен в AuthContext:', user.Username);
-            if (user.Role === 'admin') {
-                navigate('/admin-dashboard', { replace: true });
+        // Проверяем `user` и `authContextLoading`
+        // Если user есть и AuthContext НЕ в состоянии загрузки (т.е. данные профиля уже загружены)
+        if (user && !authContextLoading) { 
+            console.log('LoginPage useEffect: Пользователь обнаружен в AuthContext:', user.Username, 'Роль:', user.Role);
+            if (user.Role === 'admin') { // Используем user.Role, как ты его сохраняешь
+                navigate('/admin', { replace: true }); // Перенаправляем на /admin/ (базовый маршрут админки)
             } else {
                 navigate('/', { replace: true });
             }
         }
-    }, [user, navigate]);
+    }, [user, navigate, authContextLoading]); // Добавили authContextLoading в зависимости
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError(null);
-        setLoading(true);
+        setLoading(true); // Начинаем загрузку для UI кнопки
 
         try {
-            const response = await fetch('/login', {
+            // *** 1. Выполняем HTTP-запрос для логина ***
+            const response = await fetch('/login', { // <--- УБЕДИСЬ, ЧТО ЭТО ПРАВИЛЬНЫЙ ЭНДПОИНТ (например, /api/auth/login, а не просто /login)
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ identifier, password }),
@@ -38,41 +44,41 @@ function LoginPage() {
             const data = await response.json();
 
             if (!response.ok) {
+                // Если ответ не OK, это ошибка
                 setError(data.error || 'Ошибка входа. Пожалуйста, попробуйте еще раз.');
-                setLoading(false); // Обязательно сбросить loading при ошибке
-                return;
+                setLoading(false); // Сбросить loading при ошибке
+                return; // Выйти из функции
             }
 
             const token = data.token;
             if (token) {
-                // *** КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ 1: Вызываем функцию login из AuthContext ***
-                // Эта функция login обновит состояние user и token в контексте,
-                // а также сохранит токен в localStorage с правильным ключом.
+                // *** 2. Передаем полученный токен в функцию login из AuthContext ***
+                // Функция `login` в AuthContext обновит состояние user и token в контексте,
+                // а также сохранит токен и user в localStorage.
                 login(token); 
-                console.log('LoginPage: Вызвана функция login() из AuthContext.');
-                
-                // *** КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ 2: Удаляем прямое сохранение в localStorage ***
-                // localStorage.setItem('jwtToken', token); // Эту строку УДАЛЯЕМ, так как login() это сделает
-                // console.log('Токен успешно сохранен:', token); // Этот лог теперь будет в AuthContext
+                console.log('LoginPage: Токен успешно получен и передан в login() из AuthContext.');
                 
                 // Перенаправление произойдет благодаря useEffect выше, как только `user` обновится в контексте
-                // и AuthContext завершит загрузку профиля.
-                // Возможно, стоит удалить alert('Вход успешен!'); так как перенаправление происходит быстро.
-                alert('Вход успешен!'); 
+                // и AuthContext завершит загрузку профиля (isLoading: false).
+                // Убираем alert, так как он мешает плавной навигации.
+                // alert('Вход успешен!'); 
 
             } else {
                 setError('Ошибка: Токен не получен в ответе от сервера.');
-                setLoading(false);
+                setLoading(false); // Сбросить loading
             }
 
         } catch (err) {
             setError('Ошибка подключения к серверу. Пожалуйста, попробуйте позже.');
             console.error('Login error:', err);
-        } finally {
-            // Loading сбросится после обработки всех случаев, включая перенаправление
-            // setLoading(false); // Можно убрать отсюда, если navigate() происходит успешно.
-                               // Если оставить, то он сработает до навигации.
+            setLoading(false); // Сбросить loading при сетевой ошибке
         }
+        // finally { 
+        //     // Здесь setLoading(false) не нужен, т.к. он уже обрабатывается в блоках try/catch,
+        //     // либо его можно оставить, если уверены, что он сработает после navigate
+        //     // в случае успешного входа, что может быть не всегда оптимально.
+        //     // Лучше оставить управление loading только на success/error.
+        // }
     };
 
     return (

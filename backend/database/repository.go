@@ -11,30 +11,24 @@ import (
 	"gorm.io/gorm"
 )
 
-// AddToDb, DeleteFromDb, UpdateInDb, GetCardByID, GetAllCards, GetTotalCardCount
-// (эти функции у вас уже должны быть)
-
-// CreateUser создает нового пользователя в базе данных.
 func CreateUser(user *models.User) error {
 	if DB == nil {
 		return fmt.Errorf("ошибка: подключение к базе данных не инициализировано")
 	}
 
-	// --- ОЧЕНЬ ВАЖНЫЙ ЛОГ №3: Пароль, полученный функцией CreateUser для сохранения ---
-	// Это покажет, какой пароль GORM на самом деле получает.
 	log.Printf("CreateUser DEBUG: Сохраняется пользователь '%s', Email: '%s', пароль: '%s'", user.Username, user.Email, user.Password)
 
 	result := DB.Create(user)
 	if result.Error != nil {
 		if strings.Contains(result.Error.Error(), "duplicate key value violates unique constraint") {
-			log.Printf("CreateUser DEBUG: Дубликат пользователя для '%s': %v", user.Username, result.Error) // DEBUG-лог
+			log.Printf("CreateUser DEBUG: Дубликат пользователя для '%s': %v", user.Username, result.Error)
 			return fmt.Errorf("пользователь с таким именем пользователя или email уже существует")
 		}
-		log.Printf("CreateUser DEBUG: Ошибка при записи в БД для пользователя '%s': %v", user.Username, result.Error) // DEBUG-лог
+		log.Printf("CreateUser DEBUG: Ошибка при записи в БД для пользователя '%s': %v", user.Username, result.Error)
 		return fmt.Errorf("ошибка при создании пользователя: %w", result.Error)
 	}
 
-	log.Printf("CreateUser DEBUG: Пользователь '%s' успешно сохранен в БД.", user.Username) // DEBUG-лог
+	log.Printf("CreateUser DEBUG: Пользователь '%s' успешно сохранен в БД.", user.Username)
 	return nil
 }
 
@@ -76,39 +70,42 @@ func GetUserByID(userID uint) (*models.User, error) {
 	return &user, nil
 }
 
-// ToggleFavorite добавляет или удаляет карточку из избранного пользователя.
-// *** ИСПРАВЛЕНИЕ: userID теперь uint, cardID - uuid.UUID ***
 func ToggleFavorite(userID uint, cardID uuid.UUID) error {
 	if DB == nil {
 		return fmt.Errorf("ошибка: подключение к базе данных не инициализировано")
 	}
 
-	var favorite models.Favorite
-	// Проверяем, существует ли уже такая запись
-	result := DB.Where("user_id = ? AND card_id = ?", userID, cardID).First(&favorite)
-
-	if result.Error != nil {
-		if result.Error == gorm.ErrRecordNotFound {
-			// Записи нет, нужно добавить
-			newFavorite := models.Favorite{
-				UserID: userID, // Тип userID здесь должен совпадать с типом UserID в models.Favorite
-				CardID: cardID,
-			}
-			if err := DB.Create(&newFavorite).Error; err != nil {
-				return fmt.Errorf("ошибка при добавлении в избранное: %w", err)
-			}
-			log.Printf("Карточка %s добавлена в избранное пользователя %d\n", cardID, userID)
-		} else {
-			// Другая ошибка при запросе
-			return fmt.Errorf("ошибка при проверке избранного: %w", result.Error)
-		}
-	} else {
-		// Запись найдена, нужно удалить
-		if err := DB.Delete(&favorite).Error; err != nil {
-			return fmt.Errorf("ошибка при удалении из избранного: %w", err)
-		}
-		log.Printf("Карточка %s удалена из избранного пользователя %d\n", cardID, userID)
+	user, err := GetUserByID(userID) // Получаем пользователя
+	if err != nil {
+		return fmt.Errorf("пользователь не найден: %w", err)
 	}
+
+	// Проверяем, есть ли карточка уже в избранном
+	found := false
+	newFavorites := []uuid.UUID{}
+	for _, favID := range user.Favorites {
+		if favID == cardID {
+			found = true // Карточка найдена, её нужно удалить
+		} else {
+			newFavorites = append(newFavorites, favID) // Копируем все остальные
+		}
+	}
+
+	if found {
+		// Карточка была в избранном, удаляем её
+		user.Favorites = newFavorites
+		log.Printf("Карточка %s удалена из избранного пользователя %d\n", cardID, userID)
+	} else {
+		// Карточки не было, добавляем её
+		user.Favorites = append(user.Favorites, cardID)
+		log.Printf("Карточка %s добавлена в избранное пользователя %d\n", cardID, userID)
+	}
+
+	// Сохраняем обновленный список избранного обратно в БД
+	if err := DB.Save(&user).Error; err != nil {
+		return fmt.Errorf("ошибка при обновлении избранного пользователя: %w", err)
+	}
+
 	return nil
 }
 
@@ -118,16 +115,32 @@ func GetFavoriteCardIDsByUserID(userID uint) ([]string, error) {
 		return nil, fmt.Errorf("ошибка: подключение к базе данных не инициализировано")
 	}
 
-	var favorites []models.Favorite
-	if err := DB.Where("user_id = ?", userID).Find(&favorites).Error; err != nil {
-		return nil, fmt.Errorf("ошибка при получении избранных карточек: %w", err)
+	user, err := GetUserByID(userID) // Получаем пользователя
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return []string{}, nil
+		}
+		return nil, fmt.Errorf("ошибка при получении пользователя для избранного: %w", err)
 	}
 
 	var cardIDs []string
-	for _, fav := range favorites {
-		cardIDs = append(cardIDs, fav.CardID.String())
+	for _, favUUID := range user.Favorites {
+		cardIDs = append(cardIDs, favUUID.String())
 	}
 	return cardIDs, nil
+}
+
+// GetCardsByUUIDs получает список объектов Card по их UUID
+func GetCardsByUUIDs(uuids []uuid.UUID) ([]models.Card, error) {
+	if DB == nil {
+		return nil, fmt.Errorf("ошибка: подключение к базе данных не инициализировано")
+	}
+
+	var cards []models.Card
+	if err := DB.Where("id IN ?", uuids).Find(&cards).Error; err != nil {
+		return nil, fmt.Errorf("ошибка при получении карточек по UUIDs: %w", err)
+	}
+	return cards, nil
 }
 
 // GetAllUsers возвращает всех пользователей.
@@ -146,11 +159,6 @@ func GetAllUsers() ([]models.User, error) {
 	return users, nil
 }
 
-// AddToDb, GetCardByID, UpdateInDb, DeleteFromDb, GetAllCards, GetTotalCardCount (из repository.go)
-// Убедись, что эти функции остались в файле repository.go, как мы их поправили в прошлый раз.
-// Я включил их в предыдущем ответе для полноты.
-// Например:
-// AddToDb добавляет новую карточку в базу данных
 func AddToDb(card *models.Card) error {
 	if DB == nil {
 		return fmt.Errorf("ошибка: подключение к базе данных не инициализировано")
@@ -162,15 +170,18 @@ func AddToDb(card *models.Card) error {
 	return nil
 }
 
-// GetCardByID получает карточку по ID
-func GetCardByID(cardID uuid.UUID) (*models.Card, error) {
+// GetCardByIDfunc получает карточку по ID
+func GetCardByIDfunc(cardID uuid.UUID) (*models.Card, error) {
 	if DB == nil {
 		return nil, fmt.Errorf("ошибка: подключение к базе данных не инициализировано")
 	}
 	var card models.Card
-	result := DB.Where("id = ?", cardID).First(&card)
+	result := DB.Preload("Tag").Where("id = ?", cardID).First(&card) // Добавлено Preload("Tag")
 	if result.Error != nil {
-		return nil, result.Error
+		if result.Error == gorm.ErrRecordNotFound {
+			return nil, gorm.ErrRecordNotFound
+		}
+		return nil, fmt.Errorf("ошибка при получении карточки по ID: %w", result.Error)
 	}
 	return &card, nil
 }
@@ -180,6 +191,8 @@ func UpdateInDb(cardID uuid.UUID, updatedCard *models.Card) error {
 	if DB == nil {
 		return fmt.Errorf("ошибка: подключение к базе данных не инициализировано")
 	}
+	// Используем Model(&models.Card{}) для обновления по UUID
+	// GORM.Updates() обновит только не-нулевые поля в updatedCard
 	result := DB.Model(&models.Card{}).Where("id = ?", cardID).Updates(updatedCard)
 	if result.Error != nil {
 		return fmt.Errorf("ошибка при обновлении карточки: %w", result.Error)
@@ -221,7 +234,7 @@ func GetAllCards(options GetAllCardsOptions) ([]models.Card, error) {
 		return nil, fmt.Errorf("ошибка: подключение к базе данных не инициализировано")
 	}
 	var cards []models.Card
-	query := DB.Model(&models.Card{})
+	query := DB.Model(&models.Card{}).Preload("Tag") // ДОБАВЛЕНО: Preload("Tag") для всех карточек
 	if options.TagID != nil {
 		query = query.Where("tag_id = ?", *options.TagID)
 	}
@@ -273,4 +286,17 @@ func GetTotalCardCount(options GetAllCardsOptions) (int64, error) {
 		return 0, fmt.Errorf("ошибка при подсчете карточек: %w", err)
 	}
 	return count, nil
+}
+
+// GetAllTagsFromDB получает все доступные теги из базы данных.
+func GetAllTagsFromDB() ([]models.Tag, error) {
+	if DB == nil {
+		return nil, fmt.Errorf("ошибка: подключение к базе данных не инициализировано")
+	}
+	var tags []models.Tag
+	result := DB.Find(&tags)
+	if result.Error != nil {
+		return nil, fmt.Errorf("ошибка при получении тегов: %w", result.Error)
+	}
+	return tags, nil
 }

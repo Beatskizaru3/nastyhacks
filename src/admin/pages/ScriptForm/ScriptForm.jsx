@@ -1,60 +1,85 @@
 // src/admin/pages/ScriptForm/ScriptForm.jsx
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import styles from './ScriptForm.module.scss'; // Создайте этот SCSS модуль
+import styles from './ScriptForm.module.scss';
 
 function ScriptForm() {
-    const { id } = useParams(); // Получаем id из URL, если это режим редактирования
+    const { id } = useParams();
     const navigate = useNavigate();
-    const isEditMode = Boolean(id); // Определяем, находимся ли мы в режиме редактирования
+    const isEditMode = Boolean(id);
 
-    // Состояния для полей формы
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
-    const [imageFile, setImageFile] = useState(null); // Для загружаемого файла
-    const [imageUrl, setImageUrl] = useState(''); // Для отображения существующей картинки (в режиме редактирования)
-    const [selectedTag, setSelectedTag] = useState(''); // Выбранный тег (один ID)
-    const [availableTags, setAvailableTags] = useState([ // Заглушка для доступных тегов
-        { id: 't1', name: 'Автоматизация' },
-        { id: 't2', name: 'Сеть' },
-        { id: 't3', name: 'Безопасность' },
-        { id: 't4', name: 'Веб' },
-        { id: 't5', name: 'Системное администрирование' },
-    ]);
+    const [imageFile, setImageFile] = useState(null);
+    const [imageUrl, setImageUrl] = useState('');
+    
+    const [scriptFile, setScriptFile] = useState(null);
+    const [scriptFileName, setScriptFileName] = useState('');
+
+    const [selectedTag, setSelectedTag] = useState('');
+    const [availableTags, setAvailableTags] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
+    const getAuthToken = () => {
+        return localStorage.getItem('jwtToken');
+    };
+
+    // useEffect для загрузки тегов
     useEffect(() => {
-        // Если это режим редактирования, загружаем данные скрипта
+        const fetchTags = async () => {
+            console.log("FRONTEND DEBUG: Загрузка тегов..."); // Лог начала загрузки тегов
+            try {
+                const response = await fetch('/tags');
+                if (!response.ok) {
+                    throw new Error(`Ошибка загрузки тегов: ${response.statusText}`);
+                }
+                const data = await response.json();
+                console.log("FRONTEND DEBUG: Теги получены:", data); // Лог полученных тегов
+                setAvailableTags(data.map(tag => ({ id: String(tag.id), name: tag.name })));
+            } catch (err) {
+                console.error("FRONTEND ERROR: Ошибка загрузки тегов:", err);
+                setError("Не удалось загрузить теги.");
+            }
+        };
+        fetchTags();
+    }, []);
+
+    useEffect(() => {
         if (isEditMode) {
             setLoading(true);
             setError('');
             const fetchScriptData = async () => {
+                console.log(`FRONTEND DEBUG: Загрузка данных скрипта ID: ${id} для редактирования.`); // Лог загрузки данных для редактирования
                 try {
-                    // !!! ЗАГЛУШКА API запроса GET /api/admin/scripts/:id !!!
-                    // const response = await fetch(`/api/admin/scripts/${id}`);
-                    // if (!response.ok) {
-                    //     throw new Error(`Ошибка загрузки скрипта: ${response.statusText}`);
-                    // }
-                    // const data = await response.json();
+                    const token = getAuthToken();
+                    if (!token) {
+                        setError('Необходимо авторизоваться для редактирования.');
+                        setLoading(false);
+                        return;
+                    }
 
-                    // --- ВРЕМЕННЫЕ ДАННЫЕ (ЗАГЛУШКА) ---
-                    const data = {
-                        id: 'mock-123',
-                        title: 'Существующий скрипт для теста',
-                        description: 'Это описание существующего скрипта. Оно может быть довольно длинным и подробным, чтобы проверить, как оно отображается в текстовом поле.',
-                        imageUrl: 'https://via.placeholder.com/150/0000FF/FFFFFF?text=Existing+Image', // Пример URL существующей картинки
-                        tag: 't1' // ОДИН ID выбранного тега
-                    };
-                    // --- КОНЕЦ ЗАГЛУШКИ ---
+                    const response = await fetch(`/cards/${id}`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || `Ошибка загрузки скрипта: ${response.statusText}`);
+                    }
+                    const data = await response.json();
+                    console.log("FRONTEND DEBUG: Данные скрипта получены:", data); // Лог полученных данных скрипта
 
-                    setTitle(data.title);
-                    setDescription(data.description);
-                    setImageUrl(data.imageUrl); // Устанавливаем URL для отображения
-                    setSelectedTag(data.tag); // Устанавливаем выбранный тег (один ID)
+                    setTitle(data.Title);
+                    setDescription(data.Description);
+                    setImageUrl(data.ImagePath ? `http://localhost:8080${data.ImagePath}` : '');
+                    setScriptFileName(data.FilePath ? data.FilePath.split('/').pop() : '');
+                    setSelectedTag(String(data.TagID));
 
                 } catch (err) {
                     setError(err.message);
+                    console.error("FRONTEND ERROR: Ошибка загрузки данных скрипта:", err); // Лог ошибки загрузки данных
                 } finally {
                     setLoading(false);
                 }
@@ -63,70 +88,100 @@ function ScriptForm() {
         }
     }, [id, isEditMode]);
 
-    // Обработчик изменения файла изображения
     const handleImageChange = (e) => {
+        console.log("FRONTEND DEBUG: Выбран файл изображения:", e.target.files[0]); // Лог выбора файла изображения
         if (e.target.files && e.target.files[0]) {
             setImageFile(e.target.files[0]);
-            // Для мгновенного превью нового изображения
             setImageUrl(URL.createObjectURL(e.target.files[0])); 
         } else {
             setImageFile(null);
-            // Если файл отменен, и мы не в режиме редактирования (где есть существующая картинка), 
-            // то сбрасываем URL превью.
-            // Если в режиме редактирования, оставляем существующую картинку, пока не будет выбрана новая.
-            if (!isEditMode) setImageUrl(''); 
+            if (!isEditMode) setImageUrl('');
         }
     };
 
-    // Обработчик изменения тега (одиночный выбор)
-    const handleTagChange = (e) => {
-        setSelectedTag(e.target.value); // Получаем одно выбранное значение
+    const handleScriptFileChange = (e) => {
+        console.log("FRONTEND DEBUG: Выбран файл скрипта:", e.target.files[0]); // Лог выбора файла скрипта
+        if (e.target.files && e.target.files[0]) {
+            setScriptFile(e.target.files[0]);
+            setScriptFileName(e.target.files[0].name);
+        } else {
+            setScriptFile(null);
+            if (!isEditMode) setScriptFileName('');
+        }
     };
 
-    // Обработчик отправки формы
+    const handleTagChange = (e) => {
+        console.log("FRONTEND DEBUG: Выбран тег:", e.target.value); // Лог выбора тега
+        setSelectedTag(e.target.value);
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
         setLoading(true);
 
+        console.log("FRONTEND DEBUG: Начата отправка формы."); // Лог начала отправки формы
+        console.log("FRONTEND DEBUG: Значения полей: Title:", title, "Description:", description, "Selected Tag:", selectedTag);
+        console.log("FRONTEND DEBUG: Image File:", imageFile ? imageFile.name : "Нет", "Script File:", scriptFile ? scriptFile.name : "Нет");
+
         const formData = new FormData();
         formData.append('title', title);
         formData.append('description', description);
+        formData.append('tagId', selectedTag);
+
         if (imageFile) {
-            formData.append('image', imageFile); // Добавляем новый файл изображения
+            formData.append('image', imageFile);
         }
-        formData.append('tag', selectedTag); // Отправляем один выбранный тег
+        if (scriptFile) {
+            formData.append('scriptFile', scriptFile); 
+        }
 
-        // Логика отправки данных на бэкенд
+        const token = getAuthToken();
+        console.log("FRONTEND DEBUG: Получен токен:", token ? "есть" : "нет"); // Лог наличия токена
+
         try {
+            if (!token) {
+                throw new Error('Необходимо авторизоваться для выполнения операции.');
+            }
+
             const method = isEditMode ? 'PUT' : 'POST';
-            const url = isEditMode ? `/api/admin/scripts/${id}` : '/api/admin/scripts';
+            const url = isEditMode ? `/api/admin/cards/${id}` : '/api/admin/cards';
 
-            // !!! ЗАГЛУШКА API запроса POST/PUT /api/admin/scripts или /api/admin/scripts/:id !!!
-            // const response = await fetch(url, {
-            //     method: method,
-            //     body: formData, // FormData для отправки файлов и других данных
-            //     // headers: { 'Authorization': `Bearer ${token}` } // Добавьте токен аутентификации
-            // });
-
-            // if (!response.ok) {
-            //     const errorData = await response.json();
-            //     throw new Error(errorData.message || 'Ошибка при сохранении скрипта');
+            console.log(`FRONTEND DEBUG: Отправка запроса: Метод: ${method}, URL: ${url}`); // Лог URL и метода
+            // Можно вывести содержимое FormData, но это не всегда удобно для файлов.
+            // for (let pair of formData.entries()) {
+            //     console.log(pair[0]+ ': ' + pair[1]); 
             // }
 
-            // const result = await response.json();
-            console.log('Скрипт успешно сохранен:', { title, description, selectedTag, imageFile, id });
+            const response = await fetch(url, {
+                method: method,
+                body: formData,
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            console.log("FRONTEND DEBUG: Получен ответ от сервера:", response.status, response.statusText); // Лог статуса ответа
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error("FRONTEND ERROR: Ошибка ответа сервера:", errorData); // Лог ошибки ответа
+                throw new Error(errorData.error || errorData.message || 'Ошибка при сохранении скрипта');
+            }
+
+            const result = await response.json();
+            console.log('FRONTEND DEBUG: Скрипт успешно сохранен:', result);
             alert(`Скрипт успешно ${isEditMode ? 'обновлен' : 'добавлен'}!`);
-            navigate('/admin/scripts'); // Перенаправляем обратно в список скриптов
+            navigate('/admin/scripts');
 
         } catch (err) {
             setError(err.message);
+            console.error("FRONTEND ERROR: Ошибка в handleSubmit:", err); // Лог ошибки в submit
         } finally {
             setLoading(false);
+            console.log("FRONTEND DEBUG: Отправка формы завершена."); // Лог завершения
         }
     };
 
-    if (loading && isEditMode) { // Если в режиме редактирования и идет загрузка данных
+    if (loading && isEditMode) {
         return <div className={styles.loading}>Загрузка данных скрипта...</div>;
     }
 
@@ -164,7 +219,7 @@ function ScriptForm() {
                     <input
                         type="file"
                         id="image"
-                        accept="image/*" // Принимать только изображения
+                        accept="image/*"
                         onChange={handleImageChange}
                     />
                     {imageUrl && (
@@ -176,15 +231,28 @@ function ScriptForm() {
                 </div>
 
                 <div className={styles.formGroup}>
+                    <label htmlFor="scriptFile">Файл скрипта:</label>
+                    <input
+                        type="file"
+                        id="scriptFile"
+                        onChange={handleScriptFileChange}
+                        required={!isEditMode}
+                    />
+                    {scriptFileName && (
+                        <p className={styles.fileNamePreview}>Выбран файл: <strong>{scriptFileName}</strong></p>
+                    )}
+                </div>
+
+                <div className={styles.formGroup}>
                     <label htmlFor="tag">Тег:</label>
                     <select
                         id="tag"
-                        value={selectedTag} // Одно выбранное значение
+                        value={selectedTag}
                         onChange={handleTagChange}
                         className={styles.tagsSelect}
-                        required // Теперь тег обязателен
+                        required
                     >
-                        <option value="">Выберите тег</option> {/* Опция по умолчанию */}
+                        <option value="">Выберите тег</option>
                         {availableTags.map(tag => (
                             <option key={tag.id} value={tag.id}>
                                 {tag.name}

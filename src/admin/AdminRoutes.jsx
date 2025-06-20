@@ -15,10 +15,10 @@ const ProtectedAdminRoute = ({ children }) => {
         return <>Loading...</>
     }
 
-    // if (!user || user.role !== 'admin'){
+    if (!user || user.Role !== 'admin'){
 
-    //     return <Navigate to='/login' replace />;
-    // }
+        return <Navigate to='/login' replace />;
+    }
 
     return children;
 };

@@ -4,7 +4,6 @@ package utils
 import (
 	"fmt"
 	"log"
-	"nasty/models"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -15,16 +14,16 @@ var jwtSecret []byte // Эта переменная будет инициали�
 
 // JWTClaims определяет структуру для кастомных утверждений в JWT
 type JWTClaims struct {
-	UserID string `json:"user_id"`
-	Role   string `json:"role"`
+	UserID   string `json:"user_id"`
+	Role     string `json:"role"`
+	Username string `json:"username"`
 	jwt.RegisteredClaims
 }
 
 // SetJWTSecret устанавливает секретный ключ JWT для этого пакета.
 // Эту функцию должен вызвать главный пакет (main.go) после загрузки .env.
 func SetJWTSecret(secret []byte) {
-	// Здесь можно добавить логирование, если секрет пустой,
-	// но основную проверку лучше оставить в main.go
+
 	jwtSecret = secret
 }
 
@@ -36,7 +35,7 @@ func GenerateJWT(userID string, role string, username string) (string, error) { 
 
 	expirationTime := time.Now().Add(24 * time.Hour)
 
-	claims := &models.JWTClaims{ // Используй ту же структуру, что и в твоём коде
+	claims := &JWTClaims{ // Используй ту же структуру, что и в твоём коде
 		UserID:   userID,
 		Role:     role,
 		Username: username, // <-- Теперь мы можем использовать username здесь!

@@ -10,7 +10,7 @@ import (
 	"nasty/database"
 	"nasty/handlers"
 	"nasty/middleware"
-	"nasty/utils" // <-- Теперь импортируем utils
+	"nasty/utils"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -18,70 +18,111 @@ import (
 )
 
 func init() {
-	// Загружаем переменные окружения из файла .env ТОЛЬКО ЗДЕСЬ
+	log.Println("--- DEBUG INIT: Начало функции init ---") // Лог начала init
 	err := godotenv.Load()
 	if err != nil {
 		log.Printf("Внимание: Не удалось загрузить файл .env. %v. Переменные окружения будут браться из системы.", err)
+	} else {
+		log.Println("DEBUG INIT: .env файл успешно загружен.")
 	}
 
-	// Получаем JWT_SECRET после загрузки .env
 	secret := os.Getenv("JWT_SECRET")
 	if len(secret) == 0 {
-		log.Println("Предупреждение: JWT_SECRET не установлен. Используется ключ по умолчанию (НЕБЕЗОПАСНО ДЛЯ ПРОДАКШЕНА).")
+		log.Println("DEBUG INIT: JWT_SECRET не установлен. Используется ключ по умолчанию (НЕБЕЗОПАСНО ДЛЯ ПРОДАКШЕНА).")
 		secret = "super-secret-jwt-key-please-change-me" // Дефолтное значение для разработки
+	} else {
+		log.Println("DEBUG INIT: JWT_SECRET успешно загружен.")
 	}
 
-	// Инициализируем секрет в пакетах, которым он нужен
-	utils.SetJWTSecret([]byte(secret))      // <-- Передаем секрет в utils
-	middleware.SetJWTSecret([]byte(secret)) // <-- Передаем секрет в middleware (если у него есть такой же SetSecret)
-	handlers.SetJWTSecret([]byte(secret))   // <-- Передаем секрет в handlers (если у него есть такой же SetSecret)
+	utils.SetJWTSecret([]byte(secret))
+	middleware.SetJWTSecret([]byte(secret))
+	handlers.SetJWTSecret([]byte(secret))
+	log.Println("DEBUG INIT: JWT Secret установлен в utils, middleware, handlers.")
 
-	// Предполагается, что database.InitDB() не требует JWT_SECRET напрямую,
-	// а скорее переменные для подключения к БД, которые также будут в .env
+	log.Println("--- DEBUG INIT: Завершение функции init ---") // Лог завершения init
 }
 
 func main() {
+	log.Println("--- DEBUG MAIN: Начало функции main ---") // Лог начала main
+
 	// Инициализация базы данных
 	if err := database.InitDB(); err != nil {
 		log.Fatalf("Не удалось подключиться к базе данных: %v", err)
 	}
 
 	router := gin.Default()
+	log.Println("DEBUG MAIN: Gin роутер инициализирован.")
 
+	// Настройка CORS
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000"},                             // Разрешаем запросы только с этого источника
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},           // Разрешенные HTTP методы
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"}, // Разрешенные заголовки
-		ExposeHeaders:    []string{"Content-Length"},                                    // Заголовки, которые можно прочитать фронтенду
-		AllowCredentials: true,                                                          // Разрешаем отправку куки и заголовков авторизации
-		MaxAge:           12 * time.Hour,                                                // Время кэширования CORS-заголовков браузером
+		AllowOrigins:     []string{"http://localhost:3000"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
 	}))
+	log.Println("DEBUG MAIN: CORS Middleware сконфигурирован и применен.")
 
+	// Публичные маршруты
+	log.Println("DEBUG MAIN: Регистрация публичных маршрутов...")
 	router.POST("/login", handlers.LoginUserHandler)
+	log.Println("DEBUG MAIN:   -> POST /login")
 	router.POST("/register", handlers.RegisterUserHandler)
+	log.Println("DEBUG MAIN:   -> POST /register")
 	router.GET("/cards/:id", handlers.GetCardByIDHandler)
+	log.Println("DEBUG MAIN:   -> GET /cards/:id")
 	router.GET("/cards", handlers.GetAllCardsHandler)
+	log.Println("DEBUG MAIN:   -> GET /cards")
+	router.GET("/tags", handlers.GetAllTagsHandler)
+	log.Println("DEBUG MAIN:   -> GET /tags")
+	log.Println("DEBUG MAIN: Публичные маршруты зарегистрированы.")
 
-	authorized := router.Group("/api")
+	// Авторизованные маршруты (группа /api)
+	log.Println("DEBUG MAIN: Инициализация группы 'authorized' (/api)...")
+	authorized := router.Group("/api") // Группа на /api
 	authorized.Use(middleware.AuthMiddleware())
 	{
+		log.Println("DEBUG MAIN: Регистрация авторизованных маршрутов внутри /api...")
 		authorized.GET("/profile", handlers.Profile)
+		log.Println("DEBUG MAIN:   -> GET /api/profile")
 		authorized.POST("/profile/favorite/:cardId", handlers.ToggleFavoriteHandler)
-
+		log.Println("DEBUG MAIN:   -> POST /api/profile/favorite/:cardId")
+		authorized.POST("/cards/favorites", handlers.GetFavoriteCardsHandler)
+		log.Println("DEBUG MAIN:   -> POST /api/cards/favorites")
+		log.Println("DEBUG MAIN: Авторизованные маршруты внутри /api зарегистрированы.")
 	}
+	log.Println("DEBUG MAIN: Группа 'authorized' (/api) инициализирована.")
 
-	admin := authorized.Group("/admin")
+	// Админские маршруты (группа /admin, которая является подгруппой authorized)
+	// Это означает, что для доступа к этим маршрутам нужен JWT токен И роль "admin".
+	log.Println("DEBUG MAIN: Инициализация группы 'admin' (подгруппа /api/admin)...")
+	admin := authorized.Group("/admin") // Теперь это /api/admin
 	admin.Use(middleware.AuthorizeRole("admin"))
 	{
+		log.Println("DEBUG MAIN: Регистрация админских маршрутов внутри /api/admin...")
 		admin.GET("/users", handlers.GetUsersHandler)
+		log.Println("DEBUG MAIN:   -> GET /api/admin/users")
 		admin.PUT("/cards/:id", handlers.UpdateCardHandler)
-		admin.POST("/cards", handlers.CreateCardHandler)
-		authorized.DELETE("/cards/:id", handlers.DeleteCardHandler)
+		log.Println("DEBUG MAIN:   -> PUT /api/admin/cards/:id")
+		admin.POST("/cards", handlers.CreateCardHandler) // ВАШ МАРШРУТ!
+		log.Println("DEBUG MAIN:   -> POST /api/admin/cards")
+		admin.DELETE("/cards/:id", handlers.DeleteCardHandler)
+		log.Println("DEBUG MAIN:   -> DELETE /api/admin/cards/:id")
+		admin.GET("/tags", handlers.GetAllTagsHandler)
+		log.Println("DEBUG MAIN:   -> GET /api/admin/tags")
+		log.Println("DEBUG MAIN: Админские маршруты внутри /api/admin зарегистрированы.")
 	}
+	log.Println("DEBUG MAIN: Группа 'admin' инициализирована.")
 
+	// Маршрут для проверки работоспособности
 	router.GET("/ping", func(c *gin.Context) {
+		log.Println("DEBUG MAIN: Получен GET /ping")
 		c.JSON(http.StatusOK, gin.H{"message": "pong"})
 	})
+	log.Println("DEBUG MAIN: Маршрут GET /ping зарегистрирован.")
+
+	log.Println("--- DEBUG MAIN: Завершение конфигурации маршрутов. ---")
 
 	log.Println("Сервер запущен на порту :8080")
 	if err := router.Run(":8080"); err != nil {
