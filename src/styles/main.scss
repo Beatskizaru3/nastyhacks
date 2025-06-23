@@ -54,7 +54,7 @@
                     right: 20px;
                 }
                 background-color: white;
-                padding: 5px 20px;
+                
                 border-radius: 10px;
 
                 &.active{
@@ -67,10 +67,27 @@
             &-list{  
                 row-gap: 5px;
                 list-style-type: none;
+                
             }
 
             &-item{
                 color: black;
+                cursor: pointer;
+                padding: 2px 20px;
+                &:first-child{
+                    border-radius: 10px 10px 0 0;
+                    border: none;
+                }
+                &:last-child{
+                    border-radius: 0 0 10px 10px;
+                    border: none;
+                }
+                &:hover{
+                    transition: color 0.2s ease-in-out;
+                    color: $color-accent2;
+                    background-color: $color-card;
+                    transition: background-color 0.2s ease-in-out;
+                }
             }
             
         }
@@ -87,6 +104,8 @@
         flex-direction: column;
         justify-content: start;
         
+        
+
         &-favorite-btn{
             position: absolute;
             right: 24px;

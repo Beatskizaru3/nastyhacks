@@ -25,6 +25,10 @@
         
     }
 
+    &__title{
+        margin-left: 2rem;
+    }
+
     &__header{
         
         
@@ -61,6 +65,11 @@
 
     &__favorites{
         width: 100%;
+
+        &-title{
+            margin-left: 2rem;
+            margin-bottom: 2rem;
+        }
     }
 
     &__cards{
@@ -77,8 +86,23 @@
 
         .main__card { /* Стилизуем карточку, когда она находится внутри profile__cards */
             flex-shrink: 0; /* ЗАПРЕЩАЕМ карточкам сжиматься */
-            // Если у тебя уже есть width в main.scss, здесь можно не задавать его
-            // Но убедись, что width задан в main.scss для .main__card
+            width: 390px;
+            @include below-desktop-wide{
+                width: 390px;
+               
+            }
+            @include below-desktop{
+                width: 305px;
+                
+            }
+            @include below-tablet{
+                width: 220px;
+                
+            }
+            @include below-small-tablet{
+                max-width: 100%;
+                width: 100%;
+            }
         }
         // Стилизация полосы прокрутки (опционально, только для WebKit-браузеров)
         &::-webkit-scrollbar {

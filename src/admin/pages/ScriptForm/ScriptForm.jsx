@@ -22,7 +22,7 @@ function ScriptForm() {
     const [error, setError] = useState('');
 
     const getAuthToken = () => {
-        return localStorage.getItem('jwtToken');
+        return localStorage.getItem('token');
     };
 
     // useEffect для загрузки тегов

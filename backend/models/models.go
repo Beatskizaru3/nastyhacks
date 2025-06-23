@@ -105,15 +105,14 @@ type Card struct {
 	FilePath  string `gorm:"column:file_path" json:"filePath"` // Соответствует 'file_path' в БД, json 'filePath'
 
 	// Поля для счетчиков загрузок
-	RealDownloadsCount int `gorm:"column:real_downloads_count;default:0" json:"realDownloadsCount"`
-	FakeDownloadsCount int `gorm:"column:fake_downloads_count;default:0" json:"fakeDownloadsCount"`
-	RealDownloadCount  int `gorm:"column:real_download_count;default:0" json:"realDownloadCount"` // Дублирование, возможно, стоит пересмотреть
+	RealDownloadsCount int `gorm:"column:real_downloads_count;default:0" json:"realDownloadsCount"` // <-- Важно: json:"realDownloadsCount"
+	FakeDownloadsCount int `gorm:"column:fake_downloads_count;default:0" json:"fakeDownloadsCount"` // <-- Важно: json:"fakeDownloadsCount"
 
 	// Связь с Tag
 	TagID uint `gorm:"column:tag_id" json:"tagId"`  // Соответствует 'tag_id' в БД, json 'tagId'
 	Tag   Tag  `gorm:"foreignKey:TagID" json:"tag"` // Загрузка связанного тега
 
-	UploaderID uint `gorm:"type:uuid" json:"uploaderId"` // ID пользователя, который загрузил
+	UploaderID uint `gorm:"not null" json:"uploaderId"` // ID пользователя, который загрузил
 }
 
 type Tag struct {
@@ -140,4 +139,12 @@ func (c *Card) BeforeCreate(tx *gorm.DB) (err error) {
 func (c *Card) BeforeUpdate(tx *gorm.DB) (err error) {
 	// GORM автоматически обновляет UpdatedAt
 	return
+}
+
+// DownloadLog модель - регистрирует каждое скачивание
+type DownloadLog struct {
+	gorm.Model
+	CardID       uuid.UUID `gorm:"type:uuid;not null" json:"cardId"` // ID карточки, которая была скачана
+	DownloadTime time.Time `gorm:"not null" json:"downloadTime"`     // Точное время скачивания
+	// UserID       uint      // Опционально: если хотите отслеживать, кто скачал (нужен FK на User)
 }

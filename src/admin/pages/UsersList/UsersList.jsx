@@ -37,14 +37,15 @@ function UsersList() {
                     throw new Error(errorData.message || `Ошибка получения списка пользователей: ${response.status}`);
                 }
 
-                const data = await response.json(); 
+                // *** ИЗМЕНЕНИЕ ЗДЕСЬ ***
+                const { total_count, users: fetchedUsers } = await response.json(); 
                 
-                if (Array.isArray(data)) {
-                    setUsers(data);
-                    // Пока бэкенд не возвращает total_count, используем длину массива
-                    setTotalUsers(data.length); 
+                if (Array.isArray(fetchedUsers)) {
+                    setUsers(fetchedUsers);
+                    setTotalUsers(total_count || 0); // Используем total_count из бэкенда
                 } else {
-                    throw new Error('Некорректный формат данных: ожидался массив пользователей.');
+                    // Это сообщение появится, если бэкенд не вернул объект с total_count и users
+                    throw new Error('Некорректный формат данных: ожидался объект с массивом пользователей и общим количеством.');
                 }
 
             } catch (err) {
@@ -58,7 +59,7 @@ function UsersList() {
         fetchUsers();
     }, [currentPage, token]); 
 
-    // totalPages будет некорректным, пока бэкенд не возвращает общее количество
+    // totalPages теперь будет корректным, так как totalUsers приходит с бэкенда
     const totalPages = Math.ceil(totalUsers / usersPerPage); 
 
     const handleNextPage = () => {
@@ -89,7 +90,8 @@ function UsersList() {
 
             <div className={styles.totalUsersInfo}>
                 <p>Общее количество пользователей: <span>{totalUsers}</span></p>
-                {totalUsers === users.length && (
+                {/* Теперь это предупреждение можно удалить или оставить для отладки */}
+                {totalUsers === users.length && totalPages > 1 && ( // Добавлено условие totalPages > 1
                     <p className={styles.warningMessage}>
                         (Примечание: Отображается количество на текущей странице, так как бэкенд не предоставляет общее количество.
                         Для полноценной пагинации Go-бэкенд должен вернуть "total_count".)
@@ -120,8 +122,8 @@ function UsersList() {
                                 users.map(user => (
                                     <tr key={user.ID}> 
                                         <td>{user.ID}</td>
-                                        <td>{user.username}</td> {/* <--- ИЗМЕНЕНО: user.username */}
-                                        <td>{user.email}</td>     {/* <--- ИЗМЕНЕНО: user.email */}
+                                        <td>{user.username}</td>
+                                        <td>{user.email}</td>
                                         <td>{formatDate(user.CreatedAt)}</td> 
                                     </tr>
                                 ))
@@ -142,7 +144,7 @@ function UsersList() {
                 <span>Страница {currentPage} из {totalPages}</span>
                 <button 
                     onClick={handleNextPage} 
-                    disabled={currentPage === totalPages || loading}
+                    disabled={currentPage === totalPages || loading || totalPages === 0} // Добавлено totalPages === 0
                     className={styles.paginationButton}
                 >
                     Следующая

@@ -8,25 +8,71 @@ function ScriptsList(){
     const [scripts, setScripts] = useState([]);
     const [editingDownloadsId, setEditingDownloadsId] = useState(null); // ID скрипта, для которого редактируем скачивания
     const [newDownloadCount, setNewDownloadCount] = useState(''); // Новое значение скачиваний
+    const [error, setError] = useState(null); // Состояние для обработки ошибок загрузки
 
-    // Заглушка для получения данных скриптов
     useEffect(() => {
-        // Здесь будет API запрос к вашему GoLang бэкенду, например GET /api/admin/scripts
         const fetchScripts = async () => {
-            // const response = await fetch('/api/admin/scripts');
-            // const data = await response.json();
-            // setScripts(data);
+            try {
+                // 1. Получаем токен из localStorage
+                const token = localStorage.getItem('token'); 
+                if (!token) {
+                    setError('Вы не авторизованы. Пожалуйста, войдите.');
+                    navigate('/login'); // Перенаправляем на страницу логина, если токена нет
+                    return;
+                }
 
-            // ВРЕМЕННЫЕ ДАННЫЕ (ЗАГЛУШКА)
-            setScripts([
-                { id: '1', title: 'Скрипт А', description: 'Краткое описание скрипта А...', downloadsSet: 100, downloadsReal: 125 },
-                { id: '2', title: 'Скрипт B', description: 'Описание скрипта B, чуть длиннее.', downloadsSet: 50, downloadsReal: 48 },
-                { id: '3', title: 'Скрипт C', description: 'Очень краткое описание C.', downloadsSet: 200, downloadsReal: 198 },
-                { id: '4', title: 'Скрипт D', description: 'Описание самого крутого скрипта D, который делает что-то очень крутое и важное для пользователя.', downloadsSet: 500, downloadsReal: 512 },
-            ]);
+                // 2. Выполняем API запрос к GoLang бэкенду
+                // Используем /api/admin/cards, который вы уже реализовали с GetAllCardsHandler
+                const response = await fetch('/api/admin/cards', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}` // Отправляем токен для аутентификации
+                    }
+                });
+
+                // 3. Обработка ответа
+                if (!response.ok) {
+                    if (response.status === 401 || response.status === 403) {
+                        // Если токен недействителен или нет прав
+                        setError('Недостаточно прав для просмотра списка скриптов. Пожалуйста, залогиньтесь как администратор.');
+                        localStorage.removeItem('token'); // Удаляем невалидный токен
+                        navigate('/login'); 
+                    } else {
+                        // Другие ошибки сервера
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || `Ошибка загрузки скриптов: ${response.statusText}`);
+                    }
+                }
+
+                const responseData = await response.json();
+                // Ваш GetAllCardsHandler возвращает объект с { cards: [], totalCount: N }
+                const data = responseData.cards; 
+                
+                // 4. Приводим данные с бэкенда к формату, ожидаемому компонентом
+                // Убедитесь, что имена полей соответствуют вашей модели Card на бэкенде и тем, что вы хотите отобразить
+                const formattedScripts = data.map(card => ({
+                    id: card.ID, // UUID из Go-бэкенда
+                    title: card.title,
+                    description: card.description,
+                    // Используем RealDownloadsCount и FakeDownloadsCount из вашей модели Card
+                    downloadsSet: card.fakeDownloadsCount, 
+                    downloadsReal: card.realDownloadsCount,
+                    // Если нужно отобразить TagID и UploaderID в таблице, добавьте их сюда
+                    tagId: card.tagId,
+                    uploaderId: card.uploaderId,
+                    // ... другие поля, если необходимо
+                }));
+                setScripts(formattedScripts);
+                setError(null); // Сбрасываем ошибку, если загрузка успешна
+
+            } catch (err) {
+                console.error("Ошибка при получении скриптов:", err);
+                setError(`Не удалось загрузить скрипты: ${err.message}`);
+            }
         };
         fetchScripts();
-    }, []);
+    }, [navigate]); // navigate добавлен в зависимости, чтобы избежать предупреждений eslint
 
     // Обработчик для кнопки "Загрузить скрипт"
     const handleUploadClick = () => {
@@ -35,32 +81,52 @@ function ScriptsList(){
 
     // Обработчик для кнопки "Редактировать"
     const handleEditClick = (scriptId) => {
+        // Здесь пока заглушка, но в будущем это будет navigate к форме редактирования
         navigate(`/admin/scripts/edit/${scriptId}`);
+        // alert(`Функционал редактирования для ID ${scriptId} пока не реализован.`);
     };
 
-    // Обработчик для кнопки "Удалить"
+    // Обработчик для кнопки "Удалить" (с API-запросом)
     const handleDeleteClick = async (scriptId) => {
         if (window.confirm('Вы уверены, что хотите удалить этот скрипт?')) {
-            // Здесь будет API запрос DELETE /api/admin/scripts/:id
-            console.log(`Удаление скрипта с ID: ${scriptId}`);
-            // После успешного запроса:
-            setScripts(scripts.filter(script => script.id !== scriptId));
-            alert('Скрипт успешно удален!');
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`/api/admin/cards/${scriptId}`, { // API-эндпоинт для удаления
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}` // Отправляем токен
+                    }
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Не удалось удалить скрипт.');
+                }
+
+                // Обновляем состояние, удаляя скрипт из списка
+                setScripts(scripts.filter(script => script.id !== scriptId));
+                alert('Скрипт успешно удален!');
+            } catch (err) {
+                console.error("Ошибка при удалении скрипта:", err);
+                alert(`Ошибка при удалении скрипта: ${err.message}`);
+            }
         }
     };
 
-    // Обработчик для кнопки "Установить количество скачиваний"
-    const handleSetDownloadsClick = (script) => {
-        setEditingDownloadsId(script.id);
-        setNewDownloadCount(script.downloadsSet.toString()); // Инициализируем текущим значением
-    };
+// Обработчик для кнопки "Установить количество скачиваний"
+const handleSetDownloadsClick = (script) => {
+    setEditingDownloadsId(script.id);
+    // ИЗМЕНЕНИЕ ЗДЕСЬ: используем оператор ?? 0, чтобы гарантировать, что это число, 
+    // прежде чем вызывать toString().
+    setNewDownloadCount((script.downloadsSet ?? 0).toString()); 
+};
 
     // Обработчик изменения поля ввода для скачиваний
     const handleDownloadInputChange = (e) => {
         setNewDownloadCount(e.target.value);
     };
 
-    // Сохранение нового количества скачиваний
+    // Сохранение нового количества скачиваний (с API-запросом)
     const handleSaveDownloads = async (scriptId) => {
         const value = parseInt(newDownloadCount, 10);
         if (isNaN(value) || value < 0) {
@@ -68,16 +134,36 @@ function ScriptsList(){
             return;
         }
 
-        // Здесь будет API запрос PATCH/PUT /api/admin/scripts/:id с обновленным downloadsSet
-        console.log(`Сохранение для ${scriptId}: новое значение ${value}`);
-        
-        // Обновляем состояние после успешного запроса
-        setScripts(scripts.map(script => 
-            script.id === scriptId ? { ...script, downloadsSet: value } : script
-        ));
-        setEditingDownloadsId(null); // Скрываем поле ввода
-        setNewDownloadCount('');
-        alert('Количество скачиваний обновлено!');
+        try {
+            const token = localStorage.getItem('token');
+            // Предполагаемый API-эндпоинт для обновления только fakeDownloadsCount
+            const response = await fetch(`/api/admin/cards/${scriptId}/downloads`, { 
+                method: 'PATCH', // PATCH для частичного обновления
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ FakeDownloadsCount: value }) // Отправляем только это поле
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Не удалось обновить количество скачиваний.');
+            }
+
+            // Обновляем состояние после успешного запроса
+            setScripts(prevScripts => 
+                prevScripts.map(script => 
+                    script.id === scriptId ? { ...script, downloadsSet: value } : script
+                )
+            );
+            setEditingDownloadsId(null); // Скрываем поле ввода
+            setNewDownloadCount('');
+            alert('Количество скачиваний обновлено!');
+        } catch (err) {
+            console.error("Ошибка при обновлении скачиваний:", err);
+            alert(`Ошибка при обновлении скачиваний: ${err.message}`);
+        }
     };
 
     // Отмена редактирования скачиваний
@@ -98,6 +184,8 @@ function ScriptsList(){
                 </button>
             </div>
 
+            {error && <p className={styles.errorMessage}>{error}</p>} {/* Отображение ошибок */}
+
             <div className={styles.tableContainer}>
                 <table>
                     <thead>
@@ -105,15 +193,17 @@ function ScriptsList(){
                             <th>ID</th>
                             <th>Имя</th>
                             <th>Описание</th>
-                            <th>Задано</th>
-                            <th>Реально</th>
+                            <th>Задано (Fake)</th> {/* Обновил название */}
+                            <th>Реально (Real)</th> {/* Обновил название */}
+                            <th>Tag ID</th> {/* Добавил для отладки */}
+                            <th>Uploader ID</th> {/* Добавил для отладки */}
                             <th>Действия</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {scripts.length === 0 ? (
+                        {scripts.length === 0 && !error ? ( // Показываем "Скриптов пока нет.", только если нет ошибок
                             <tr>
-                                <td colSpan="6">Скриптов пока нет.</td>
+                                <td colSpan="8">Скриптов пока нет.</td> {/* Обновил colSpan */}
                             </tr>
                         ) : (
                             scripts.map(script => (
@@ -137,27 +227,29 @@ function ScriptsList(){
                                         )}
                                     </td>
                                     <td>{script.downloadsReal}</td>
+                                    <td>{script.tagId}</td> {/* Отображаем Tag ID */}
+                                    <td>{script.uploaderId}</td> {/* Отображаем Uploader ID */}
                                     <td className={styles.actions}>
                                         <button 
                                             className={styles.actionButton}
                                             onClick={() => handleEditClick(script.id)}
                                             title="Редактировать"
                                         >
-                                            ✏️ {/* Иконка "Редактировать" */}
+                                            ✏️
                                         </button>
                                         <button 
                                             className={styles.actionButton}
                                             onClick={() => handleSetDownloadsClick(script)}
                                             title="Установить количество скачиваний"
                                         >
-                                            🔢 {/* Иконка "Установить скачивания" */}
+                                            🔢
                                         </button>
                                         <button 
                                             className={`${styles.actionButton} ${styles.deleteButton}`}
                                             onClick={() => handleDeleteClick(script.id)}
                                             title="Удалить"
                                         >
-                                            🗑️ {/* Иконка "Удалить" */}
+                                            🗑️
                                         </button>
                                     </td>
                                 </tr>

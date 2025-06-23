@@ -2,24 +2,27 @@
 import { Link } from 'react-router-dom';
 
 function Card({ card, isFavorite, toggleFavorite, disableFavorite }){
-  // Используем деструктуризацию с именами полей, как в JSON-ответе (маленькие буквы)
-  const { ID, title, description, downloadCount, uploadedAt, imageUrl } = card;
+  // ИЗМЕНЕНИЕ: Используем 'fakeDownloadsCount' из объекта card, который приходит с бэкенда
+  // Убедитесь, что card.fakeDownloadsCount содержит фактическое значение
+  const { ID, title, description, uploadedAt, imageUrl } = card;
+  const downloadCount = card.fakeDownloadsCount ?? 0; // Получаем фейковое число, если нет - 0
 
-  // ИЗМЕНЕНИЕ: Обновляем логирование для отладки, чтобы использовать новые имена
-  console.log(`Card ${ID}: isFavorite = ${isFavorite}, card.ID = ${ID}, favoritedIds (from context) = `, isFavorite ? 'True' : 'False');
-  console.log('Card Component: Полученный пропс `card`:', card);
-  console.log('Card Component: Деструктурированные поля:', { ID, title, description, downloadCount, uploadedAt, imageUrl });
+  // Убираем лишние console.log после отладки, если они не нужны постоянно
+  // console.log(`Card ${ID}: isFavorite = ${isFavorite}, card.ID = ${ID}, favoritedIds (from context) = `, isFavorite ? 'True' : 'False');
+  // console.log('Card Component: Полученный пропс `card`:', card);
+  // console.log('Card Component: Деструктурированные поля:', { ID, title, description, downloadCount, uploadedAt, imageUrl });
+
 
   const handleFavoriteClick = (e) => {
-    e.stopPropagation(); // Отменяем всплытие события, чтобы не триггерить навигацию
+    e.stopPropagation(); 
     if (!disableFavorite){
-      toggleFavorite(ID); // Используем ID (он уже был корректным)
+      toggleFavorite(ID); 
     }
   };
 
-  // ИЗМЕНЕНИЕ: Определяем SRC и ALT для изображения, используя 'imageUrl' и 'title'
-  const imgSrc = imageUrl && imageUrl !== "" ? imageUrl : 'https://via.placeholder.com/150'; // Замените на свой путь к заглушке
-  const imgAlt = title ? title : "Card thumbnail"; // Используем title для alt
+  const imgSrc = imageUrl && imageUrl !== "" ? imageUrl : 'https://via.placeholder.com/150';
+  const imgAlt = title ? title : "Card thumbnail"; 
+
   return(
     <div className="main__card">
       <div
@@ -37,8 +40,8 @@ function Card({ card, isFavorite, toggleFavorite, disableFavorite }){
         <img src={imgSrc} alt={imgAlt} className="main__card-img" />
         <div className="main__card-body">
           <div>
-            <div className="main__card-title">{title}</div> {/* ИСПОЛЬЗУЕМ title */}
-            <p className="main__card-description">{description}</p> {/* ИСПОЛЬЗУЕМ description */}
+            <div className="main__card-title">{title}</div>
+            <p className="main__card-description">{description}</p>
           </div>
           <div className="main__card-additional">
             <Link to={`/card/${ID}`}>
@@ -48,13 +51,12 @@ function Card({ card, isFavorite, toggleFavorite, disableFavorite }){
               <svg width="24px" height="24px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M12 5V19M12 19L6 13M12 19L18 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
-              <p className="main__card-stat-downloads">{downloadCount}</p> {/* ИСПОЛЬЗУЕМ downloadCount */}
+              <p className="main__card-stat-downloads">{downloadCount}</p> {/* Теперь это fakeDownloadsCount */}
               <svg width="24px" height="24px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M12 7V12L13.5 14.5M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
               <p className="main__card-stat-date">
   {(() => {
-      // ИСПОЛЬЗУЕМ uploadedAt
       const dateString = uploadedAt === "0001-01-01T00:00:00Z" ? null : uploadedAt;
       const date = new Date(dateString);
 
@@ -73,3 +75,4 @@ function Card({ card, isFavorite, toggleFavorite, disableFavorite }){
 }
 
 export default Card;
+
