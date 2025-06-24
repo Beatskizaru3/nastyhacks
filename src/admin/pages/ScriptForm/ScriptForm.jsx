@@ -21,6 +21,7 @@
         const [loading, setLoading] = useState(false);
         const [error, setError] = useState('');
         const API_BASE_URL = process.env.REACT_APP_API_URL;
+        console.log(API_BASE_URL)
         const getAuthToken = () => {
             return localStorage.getItem('token');
         };
@@ -58,6 +59,7 @@
                             setLoading(false);
                             return;
                         }
+                        
 
                         const response = await fetch(`${API_BASE_URL}/cards/${id}`, {
                             headers: {
