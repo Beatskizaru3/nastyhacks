@@ -36,7 +36,7 @@ function LoginPage() {
 
         try {
             // *** 1. Выполняем HTTP-запрос для логина ***
-            const response = await fetch(`${API_BASE_URL}/register`, { // <--- УБЕДИСЬ, ЧТО ЭТО ПРАВИЛЬНЫЙ ЭНДПОИНТ (например, /api/auth/login, а не просто /login)
+            const response = await fetch(`${API_BASE_URL}/login`, { // <--- УБЕДИСЬ, ЧТО ЭТО ПРАВИЛЬНЫЙ ЭНДПОИНТ (например, /api/auth/login, а не просто /login)
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ identifier, password }),
