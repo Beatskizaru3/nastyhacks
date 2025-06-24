@@ -1,0 +1,8 @@
+[build]
+  command = "npm run build"
+  publish = "build"
+
+[build.environment]
+  # Эта переменная будет доступна во время сборки
+  # Убедитесь, что ее значение ТОЧНО совпадает с URL вашего Render-бэкенда
+  REACT_APP_API_URL = "https://nastyhacks.onrender.com"
