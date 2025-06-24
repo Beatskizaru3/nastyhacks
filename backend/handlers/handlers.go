@@ -69,24 +69,24 @@ func saveFile(c *gin.Context, fileKey string, cardID uuid.UUID, subDir string) (
 	return fmt.Sprintf("/uploads/%s/%s", subDir, filename), nil
 }
 
-// IncrementDownloadCountHandler увеличивает счетчики загрузок карточки и отдает файл.
-// IncrementDownloadCountHandler увеличивает счетчик загрузок и отдает файл
+// IncrementDownloadCountHandler увеличивает счетчик скачиваний для карточки.
 func IncrementDownloadCountHandler(c *gin.Context) {
 	cardIDStr := c.Param("id")
 	log.Printf("DEBUG: IncrementDownloadCountHandler: Получен запрос на скачивание для Card ID: %s", cardIDStr)
 
-	// Преобразуем ID из строки в uint
-	cardID, err := strconv.ParseUint(cardIDStr, 10, 64) // Используем ParseUint для беззнакового ID
+	// --- ИСПРАВЛЕНИЕ: Преобразуем строковый ID в uuid.UUID ---
+	cardID, err := uuid.Parse(cardIDStr) // Используем uuid.Parse для UUID
 	if err != nil {
-		log.Printf("ERROR: IncrementDownloadCountHandler: Неверный формат ID карточки: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID карточки"})
+		log.Printf("ERROR: IncrementDownloadCountHandler: Неверный формат ID карточки (ожидался UUID): %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID карточки. Ожидался UUID."})
 		return
 	}
 
 	var card models.Card
+	// --- ИСПРАВЛЕНИЕ: GORM должен работать с uuid.UUID напрямую ---
 	result := database.DB.Where("id = ?", cardID).First(&card)
 	if result.Error != nil {
-		if result.Error.Error() == "record not found" {
+		if result.Error == gorm.ErrRecordNotFound { // Сравниваем напрямую с ошибкой GORM
 			log.Printf("WARNING: IncrementDownloadCountHandler: Карточка с ID %s не найдена.", cardIDStr)
 			c.JSON(http.StatusNotFound, gin.H{"error": "Карточка не найдена."})
 			return
@@ -96,10 +96,10 @@ func IncrementDownloadCountHandler(c *gin.Context) {
 		return
 	}
 
-	// --- ИЗМЕНЕНИЕ: Увеличиваем FakeDownloadsCount, DownloadCount и RealDownloadsCount ---
+	// Увеличиваем счетчики
 	card.DownloadCount++      // Общий счетчик
 	card.RealDownloadsCount++ // Реальный счетчик
-	card.FakeDownloadsCount++ // <--- ВОТ ЭТО ДОБАВЛЯЕМ/ИЗМЕНЯЕМ: Увеличиваем фейковый счетчик
+	card.FakeDownloadsCount++ // Фейковый счетчик
 
 	updateResult := database.DB.Save(&card) // Сохраняем обновленную карточку
 	if updateResult.Error != nil {
@@ -117,7 +117,6 @@ func IncrementDownloadCountHandler(c *gin.Context) {
 	}
 
 	// Определяем полный путь к файлу на сервере
-	// Удаляем префикс "/uploads/" из FilePath, так как router.Static уже обрабатывает его
 	filePathOnServer := fmt.Sprintf(".%s", card.FilePath) // Добавляем "." чтобы сделать путь относительным к текущей директории
 
 	// Проверяем существование файла

@@ -57,7 +57,7 @@ func main() {
 
 	// Настройка CORS
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000"},
+		AllowOrigins:     []string{"*", "http://localhost:3000"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
@@ -108,8 +108,13 @@ func main() {
 	} // <-- Закрывающая скобка для authorized группы
 
 	log.Println("--- DEBUG MAIN: Завершение конфигурации маршрутов. ---")
-	log.Println("Сервер запущен на порту :8080")
-	if err := router.Run(":8080"); err != nil {
+	// --- ВОТ ЭТО ИСПРАВЛЕНИЕ: Получаем порт из переменных окружения ---
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080" // Порт по умолчанию для локальной разработки
+	}
+	log.Printf("Сервер запускается на порту :%s", port) // Изменено для вывода правильного порта
+	if err := router.Run(":" + port); err != nil {      // <-- Используем полученный порт
 		log.Fatalf("Ошибка запуска сервера: %v", err)
 	}
 	log.Println("--- DEBUG MAIN: Завершение функции main ---")

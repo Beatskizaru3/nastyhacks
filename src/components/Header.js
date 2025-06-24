@@ -9,6 +9,7 @@ function Header(){
     return(
         <header className='header container'>
         <div className="header__left">
+          <Link to='/'> 
           <div className="header__logo">
           <svg width="800px" height="800px" viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg" >
 <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
@@ -17,8 +18,8 @@ function Header(){
 <path stroke-width="8" d="M71 94h50"/>
 </g>
 </svg>
-          </div>
             <div className="header__name">Script RB</div> 
+          </div></Link>
           <nav className="header__nav">
             <ul className="header__nav-list">
               <Link to="/">
