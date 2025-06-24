@@ -31,13 +31,9 @@ function CardDetail() {
                 }
                 const data = await response.json();
                 console.log(`[CardDetail] Данные карточки получены:`, data);
-                let finalImageUrl = data.imageUrl;
-if (finalImageUrl && !finalImageUrl.startsWith('http://') && !finalImageUrl.startsWith('https://')) {
-    finalImageUrl = `${API_BASE_URL}${finalImageUrl}`;
-} else if (!finalImageUrl || finalImageUrl === "") {
-    finalImageUrl = PLACEHOLDER_IMAGE_URL; // Используйте новую константу
-}
-setCardData({ ...data, imageUrl: finalImageUrl });
+                
+                setCardData(data); // <--- Важно: cardData будет содержать актуальное fakeDownloadsCount
+                                    // после первой загрузки страницы.
             } catch (err) {
                 console.error(`[CardDetail] Ошибка при загрузке данных карточки:`, err);
                 setError('Ошибка при загрузке данных: ' + err.message);
