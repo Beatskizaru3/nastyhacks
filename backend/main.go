@@ -57,7 +57,7 @@ func main() {
 
 	// Настройка CORS
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000", "https://kaleidoscopic-sopapillas-25f79d.netlify.app/", "https://nastyhacks.onrender.com/cards?limit=9&offset=0&sortBy=recent&tagId=1"},
+		AllowOrigins:     []string{"http://localhost:3000", "https://kaleidoscopic-sopapillas-25f79d.netlify.app/", "https://nastyhacks.onrender.com/"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
