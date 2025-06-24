@@ -20,7 +20,7 @@ function Card({ card, isFavorite, toggleFavorite, disableFavorite }){
     }
   };
 
-  const imgSrc = imageUrl && imageUrl !== "" ? imageUrl : PLACEHOLDER_IMAGE_URL; // Используйте новую константу
+  const imgSrc = imageUrl && imageUrl !== "" ? imageUrl : 'https://via.placeholder.com/150';
   const imgAlt = title ? title : "Card thumbnail"; 
 
   return(
