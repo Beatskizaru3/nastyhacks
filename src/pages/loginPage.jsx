@@ -14,6 +14,7 @@ function LoginPage() {
     const navigate = useNavigate(); // <-- ОДНОКРАТНАЯ ИНИЦИАЛИЗАЦИЯ navigate
     const { login, user, isLoading: authContextLoading } = useAuth(); // Получаем функцию `login` и `user` из контекста, а также `isLoading` для учета загрузки контекста
 
+    const API_BASE_URL = process.env.REACT_APP_API_URL;
     // useEffect для перенаправления ПОСЛЕ того, как AuthContext обновит `user`
     useEffect(() => {
         // Проверяем `user` и `authContextLoading`
@@ -35,7 +36,7 @@ function LoginPage() {
 
         try {
             // *** 1. Выполняем HTTP-запрос для логина ***
-            const response = await fetch('/login', { // <--- УБЕДИСЬ, ЧТО ЭТО ПРАВИЛЬНЫЙ ЭНДПОИНТ (например, /api/auth/login, а не просто /login)
+            const response = await fetch(`${API_BASE_URL}/register`, { // <--- УБЕДИСЬ, ЧТО ЭТО ПРАВИЛЬНЫЙ ЭНДПОИНТ (например, /api/auth/login, а не просто /login)
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ identifier, password }),

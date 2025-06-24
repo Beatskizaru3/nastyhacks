@@ -10,6 +10,8 @@ function RegisterPage() {
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
+    const API_BASE_URL = process.env.REACT_APP_API_URL;
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError(null); // Сбрасываем предыдущие ошибки
@@ -17,7 +19,7 @@ function RegisterPage() {
 
         try {
             // Отправляем запрос на /register. Прокси в package.json перенаправит на http://localhost:8080/register
-            const response = await fetch('/register', {
+            const response = await fetch(`${API_BASE_URL}/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 // Отправляем данные для регистрации
