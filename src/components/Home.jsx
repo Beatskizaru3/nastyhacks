@@ -37,7 +37,10 @@ function HomePage({ isCardDetailPage, customLoadButton, customTitle, tagId }) {
 
       const limit = CARDS_PER_LOAD;
       const offset = (pageNumber - 1) * limit;
-      let url = `/cards?limit=${limit}&offset=${offset}&sortBy=${currentSortBy}`; 
+
+      const API_BASE_URL = process.env.REACT_APP_API_URL;
+
+      let url = `${API_BASE_URL}/cards?limit=${limit}&offset=${offset}&sortBy=${currentSortBy}`;
 
       if (currentTagId) {
         url += `&tagId=${currentTagId}`;
