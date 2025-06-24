@@ -1,7 +1,11 @@
+// src/components/CardDetail.jsx
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import HomePage from "./Home"; // Убедитесь, что это правильный импорт
 import { useAuth } from '../context/AuthContext';
+
+// ИСПРАВЛЕНИЕ: Добавляем определение PLACEHOLDER_IMAGE_URL
+const PLACEHOLDER_IMAGE_URL = 'https://placehold.co/150x150/cccccc/333333?text=No Image';
 
 function CardDetail() {
     const { id } = useParams();
@@ -13,6 +17,7 @@ function CardDetail() {
 
     const isFavorite = !authLoading && favoritedIds.includes(id);
     const API_BASE_URL = process.env.REACT_APP_API_URL;
+
     useEffect(() => {
         const fetchCardDetails = async () => {
             try {
@@ -31,8 +36,16 @@ function CardDetail() {
                 }
                 const data = await response.json();
                 console.log(`[CardDetail] Данные карточки получены:`, data);
-                setCardData(data); // <--- Важно: cardData будет содержать актуальное fakeDownloadsCount
-                                    // после первой загрузки страницы.
+
+                // ИСПРАВЛЕНИЕ: Преобразуем относительный URL изображения в полный
+                let finalImageUrl = data.imageUrl;
+                if (finalImageUrl && !finalImageUrl.startsWith('http://') && !finalImageUrl.startsWith('https://')) {
+                    finalImageUrl = `${API_BASE_URL}${finalImageUrl}`;
+                } else if (!finalImageUrl || finalImageUrl === "") {
+                    finalImageUrl = PLACEHOLDER_IMAGE_URL;
+                }
+                setCardData({ ...data, imageUrl: finalImageUrl });
+
             } catch (err) {
                 console.error(`[CardDetail] Ошибка при загрузке данных карточки:`, err);
                 setError('Ошибка при загрузке данных: ' + err.message);
@@ -42,7 +55,7 @@ function CardDetail() {
         };
 
         fetchCardDetails();
-    }, [id]);
+    }, [id, API_BASE_URL]); // ИСПРАВЛЕНИЕ: Добавлен API_BASE_URL в зависимости
 
     const handleFavoriteClick = () => {
         if (authLoading || !user) {
@@ -78,7 +91,6 @@ function CardDetail() {
             }
 
             const blob = await response.blob();
-            // ... (получение имени файла, создание ссылки, имитация клика)
             let filename = 'downloaded_file';
             const contentDisposition = response.headers.get('Content-Disposition');
             if (contentDisposition) {
@@ -98,13 +110,12 @@ function CardDetail() {
             window.URL.revokeObjectURL(url);
             console.log(`[CardDetail] Файл ${filename} успешно инициирован для скачивания.`);
 
-            // --- ИЗМЕНЕНИЕ: Обновляем и fakeDownloadsCount, и downloadCount ---
             setCardData(prevCardData => ({
                 ...prevCardData,
-                downloadCount: (prevCardData.downloadCount || 0) + 1, // Обновляем общий счетчик
-                fakeDownloadsCount: (prevCardData.fakeDownloadsCount || 0) + 1 // Обновляем фейковый счетчик
+                downloadCount: (prevCardData.downloadCount || 0) + 1,
+                fakeDownloadsCount: (prevCardData.fakeDownloadsCount || 0) + 1
             }));
-            console.log(`[CardDetail] Локально обновлен счетчик загрузок для карточки ID: ${id}. 
+            console.log(`[CardDetail] Локально обновлен счетчик загрузок для карточки ID: ${id}.
                          Новое FakeDownloadsCount: ${cardData.fakeDownloadsCount + 1},
                          Новое DownloadCount: ${cardData.downloadCount + 1}`);
 
@@ -132,12 +143,11 @@ function CardDetail() {
         description,
         uploadedAt,
         imageUrl,
-        fakeDownloadsCount, // Мы уже деструктурируем его здесь
+        fakeDownloadsCount,
         tag
     } = cardData;
 
-    // Отображаемое количество скачиваний: предпочитаем downloadCount, затем fakeDownloadsCount
-    const displayedDownloads = fakeDownloadsCount ?? 0; // Для отображения именно "фейковых"
+    const displayedDownloads = fakeDownloadsCount ?? 0;
 
     const tagName = tag && tag.name ? tag.name : "Категория";
 
