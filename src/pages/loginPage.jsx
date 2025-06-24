@@ -15,6 +15,7 @@ function LoginPage() {
     const { login, user, isLoading: authContextLoading } = useAuth(); // Получаем функцию `login` и `user` из контекста, а также `isLoading` для учета загрузки контекста
 
     const API_BASE_URL = process.env.REACT_APP_API_URL;
+    
     // useEffect для перенаправления ПОСЛЕ того, как AuthContext обновит `user`
     useEffect(() => {
         // Проверяем `user` и `authContextLoading`
