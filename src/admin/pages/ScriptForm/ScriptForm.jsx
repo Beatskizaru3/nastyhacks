@@ -145,7 +145,7 @@ function ScriptForm() {
             }
 
             const method = isEditMode ? 'PUT' : 'POST';
-            const url = isEditMode ? `${API_BASE_URL}/api/admin/cards/${id}` : '${API_BASE_URL}/api/admin/cards';
+            const url = isEditMode ? `${API_BASE_URL}/api/admin/cards/${id}` : `${API_BASE_URL}/api/admin/cards`;
 
             console.log(`FRONTEND DEBUG: Отправка запроса: Метод: ${method}, URL: ${url}`); // Лог URL и метода
             // Можно вывести содержимое FormData, но это не всегда удобно для файлов.
