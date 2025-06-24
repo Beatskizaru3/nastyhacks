@@ -33,7 +33,7 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('favoritedIds'); 
         // Перенаправление после выхода должно происходить в компоненте, который вызывает logout (например, ProfilePage)
     }, []); 
-
+    const API_BASE_URL = process.env.REACT_APP_API_URL;
     // useEffect для первоначальной загрузки данных пользователя и избранного при монтировании AuthProvider
     // или при изменении токена (например, после входа или обновления страницы)
     useEffect(() => {
@@ -63,7 +63,7 @@ export const AuthProvider = ({ children }) => {
                     }
 
                     // 2. Запрашиваем избранное с бэкенда через защищенный маршрут
-                    const profileResponse = await fetch('/api/profile', { // Убедитесь, что это правильный эндпоинт для профиля/избранного
+                    const profileResponse = await fetch(`${API_BASE_URL}/api/profile`, { // Убедитесь, что это правильный эндпоинт для профиля/избранного
                         method: 'GET',
                         headers: {
                             'Content-Type': 'application/json',
