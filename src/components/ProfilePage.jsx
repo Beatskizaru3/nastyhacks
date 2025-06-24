@@ -16,6 +16,8 @@ function ProfilePage(){
 
     const navigate = useNavigate();
     
+    const API_BASE_URL = process.env.REACT_APP_API_URL;
+
     useEffect(() => {
         console.log('ProfilePage: useEffect (загрузка избранного) сработал. authLoading:', authLoading, 'user:', user, 'favoritedIds:', favoritedIds);
 
@@ -39,7 +41,7 @@ function ProfilePage(){
                 setLoadingInitialFavorites(true);
                 // Отправляем запрос только если у нас есть ID, которые нужно загрузить
                 // Бэкенд GetFavoriteCardsHandler теперь сам берет favoritedIds из БД
-                const response = await fetch('/api/cards/favorites', {
+                const response = await fetch(`${API_BASE_URL}/api/cards/favorites`, {
                     method: 'POST', // Твой бэкенд ожидает POST
                     headers: {
                         'Content-Type': 'application/json',
