@@ -31,17 +31,9 @@ function CardDetail() {
                 }
                 const data = await response.json();
                 console.log(`[CardDetail] Данные карточки получены:`, data);
-                let finalImageUrl = data.imageUrl; // Получаем imageUrl из данных бэкенда
-                // Проверяем, является ли путь относительным (и что finalImageUrl не пуст, хотя пользователь гарантирует, что он всегда есть)
-                if (finalImageUrl && !finalImageUrl.startsWith('http://') && !finalImageUrl.startsWith('https://')) {
-                    // Если да, склеиваем его с API_BASE_URL
-                    finalImageUrl = `${API_BASE_URL}${finalImageUrl}`;
-                    console.log(`[CardDetail] Сформирован полный URL изображения: ${finalImageUrl}`);
-                }
-                // (Блок else if для плейсхолдера удален)
-                // Обновляем данные карточки, заменяя относительный imageUrl на полный
-                setCardData({ ...data, imageUrl: finalImageUrl });
-                // --- КОНЕЦ ИСПРАВЛЕНИЯ ---
+                
+                setCardData(data); // <--- Важно: cardData будет содержать актуальное fakeDownloadsCount
+                                    // после первой загрузки страницы.
             } catch (err) {
                 console.error(`[CardDetail] Ошибка при загрузке данных карточки:`, err);
                 setError('Ошибка при загрузке данных: ' + err.message);
