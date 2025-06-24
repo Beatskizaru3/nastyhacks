@@ -166,7 +166,7 @@ export const AuthProvider = ({ children }) => {
         );
 
         try {
-            const response = await fetch(`/api/profile/favorite/${cardId}`, { // POST на этот URL для TOGGLE
+            const response = await fetch(`${API_BASE_URL}/api/profile/favorite/${cardId}`, { // POST на этот URL для TOGGLE
                 method: 'POST', 
                 headers: {
                     'Content-Type': 'application/json',
