@@ -31,9 +31,19 @@ function CardDetail() {
                 }
                 const data = await response.json();
                 console.log(`[CardDetail] Данные карточки получены:`, data);
-                
-                setCardData(data); // <--- Важно: cardData будет содержать актуальное fakeDownloadsCount
-                                    // после первой загрузки страницы.
+                let finalImageUrl = data.imageUrl; // Получаем imageUrl из данных бэкенда
+                // Проверяем, является ли путь относительным
+                if (finalImageUrl && !finalImageUrl.startsWith('http://') && !finalImageUrl.startsWith('https://')) {
+                    // Если да, склеиваем его с API_BASE_URL
+                    finalImageUrl = `${API_BASE_URL}${finalImageUrl}`;
+                    console.log(`[CardDetail] Сформирован полный URL изображения: ${finalImageUrl}`);
+                } else if (!finalImageUrl || finalImageUrl === "") {
+                    // Если imageUrl пуст или отсутствует, используем плейсхолдер
+                    finalImageUrl = PLACEHOLDER_IMAGE_URL;
+                    console.log(`[CardDetail] Используется URL плейсхолдера: ${finalImageUrl}`);
+                }
+                // Обновляем данные карточки, заменяя относительный imageUrl на полный
+                setCardData({ ...data, imageUrl: finalImageUrl });
             } catch (err) {
                 console.error(`[CardDetail] Ошибка при загрузке данных карточки:`, err);
                 setError('Ошибка при загрузке данных: ' + err.message);
