@@ -76,13 +76,13 @@ function ScriptsList(){
 
     // Обработчик для кнопки "Загрузить скрипт"
     const handleUploadClick = () => {
-        navigate(`${API_BASE_URL}/admin/scripts/new`);
+        navigate(`/admin/scripts/new`);
     };
 
     // Обработчик для кнопки "Редактировать"
     const handleEditClick = (scriptId) => {
         // Здесь пока заглушка, но в будущем это будет navigate к форме редактирования
-        navigate(`${API_BASE_URL}/admin/scripts/edit/${scriptId}`);
+        navigate(`/admin/scripts/edit/${scriptId}`);
         // alert(`Функционал редактирования для ID ${scriptId} пока не реализован.`);
     };
 
