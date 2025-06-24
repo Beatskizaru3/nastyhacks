@@ -44,7 +44,7 @@ function Card({ card, isFavorite, toggleFavorite, disableFavorite }){
             <p className="main__card-description">{description}</p>
           </div>
           <div className="main__card-additional">
-            <Link to={`${API_BASE_URL}/card/${ID}`}>
+            <Link to={`/card/${ID}`}>
                 <button>Download</button>
             </Link>
             <div className="main__card-stat">

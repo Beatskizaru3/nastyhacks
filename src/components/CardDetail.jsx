@@ -20,7 +20,7 @@ function CardDetail() {
                 setError(null);
 
                 console.log(`[CardDetail] Запрос данных для карточки ID: ${id}`);
-                const response = await fetch(`/cards/${id}`);
+                const response = await fetch(`${API_BASE_URL}/cards/${id}`);
                 if (!response.ok) {
                     if (response.status === 404) {
                         console.error(`[CardDetail] Ошибка 404: Карточка с ID ${id} не найдена.`);
