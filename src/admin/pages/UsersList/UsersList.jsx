@@ -11,7 +11,7 @@ function UsersList() {
     const [loading, setLoading] = useState(true); 
     const [error, setError] = useState(null); 
     const usersPerPage = 15;
-
+    const API_BASE_URL = process.env.REACT_APP_API_URL;
     useEffect(() => {
         const fetchUsers = async () => {
             if (!token) {
@@ -24,7 +24,7 @@ function UsersList() {
             setError(null); 
 
             try {
-                const response = await fetch(`/api/admin/users?page=${currentPage}&limit=${usersPerPage}`, {
+                const response = await fetch(`${API_BASE_URL}/api/admin/users?page=${currentPage}&limit=${usersPerPage}`, {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',

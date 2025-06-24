@@ -6,7 +6,7 @@ import Dashboard from './pages/Dashboard/Dashboard';
 import ScriptsList from './pages/ScriptsList/ScriptsList';
 import ScriptForm from './pages/ScriptForm/ScriptForm';
 import UsersList from './pages/UsersList/UsersList'
-
+const API_BASE_URL = process.env.REACT_APP_API_URL;
 const ProtectedAdminRoute = ({ children }) => {
     const { user, isLoading } = useAuth();
 

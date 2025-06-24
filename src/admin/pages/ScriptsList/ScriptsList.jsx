@@ -9,7 +9,7 @@ function ScriptsList(){
     const [editingDownloadsId, setEditingDownloadsId] = useState(null); // ID скрипта, для которого редактируем скачивания
     const [newDownloadCount, setNewDownloadCount] = useState(''); // Новое значение скачиваний
     const [error, setError] = useState(null); // Состояние для обработки ошибок загрузки
-
+    const API_BASE_URL = process.env.REACT_APP_API_URL;
     useEffect(() => {
         const fetchScripts = async () => {
             try {
@@ -17,13 +17,13 @@ function ScriptsList(){
                 const token = localStorage.getItem('token'); 
                 if (!token) {
                     setError('Вы не авторизованы. Пожалуйста, войдите.');
-                    navigate('/login'); // Перенаправляем на страницу логина, если токена нет
+                    navigate(`${API_BASE_URL}/login`); // Перенаправляем на страницу логина, если токена нет
                     return;
                 }
 
                 // 2. Выполняем API запрос к GoLang бэкенду
                 // Используем /api/admin/cards, который вы уже реализовали с GetAllCardsHandler
-                const response = await fetch('/api/admin/cards', {
+                const response = await fetch(`${API_BASE_URL}/api/admin/cards`, {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
@@ -76,13 +76,13 @@ function ScriptsList(){
 
     // Обработчик для кнопки "Загрузить скрипт"
     const handleUploadClick = () => {
-        navigate('/admin/scripts/new');
+        navigate(`${API_BASE_URL}/admin/scripts/new`);
     };
 
     // Обработчик для кнопки "Редактировать"
     const handleEditClick = (scriptId) => {
         // Здесь пока заглушка, но в будущем это будет navigate к форме редактирования
-        navigate(`/admin/scripts/edit/${scriptId}`);
+        navigate(`${API_BASE_URL}/admin/scripts/edit/${scriptId}`);
         // alert(`Функционал редактирования для ID ${scriptId} пока не реализован.`);
     };
 
@@ -91,7 +91,7 @@ function ScriptsList(){
         if (window.confirm('Вы уверены, что хотите удалить этот скрипт?')) {
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch(`/api/admin/cards/${scriptId}`, { // API-эндпоинт для удаления
+                const response = await fetch(`${API_BASE_URL}/api/admin/cards/${scriptId}`, { // API-эндпоинт для удаления
                     method: 'DELETE',
                     headers: {
                         'Authorization': `Bearer ${token}` // Отправляем токен
@@ -137,7 +137,7 @@ const handleSetDownloadsClick = (script) => {
         try {
             const token = localStorage.getItem('token');
             // Предполагаемый API-эндпоинт для обновления только fakeDownloadsCount
-            const response = await fetch(`/api/admin/cards/${scriptId}/downloads`, { 
+            const response = await fetch(`${API_BASE_URL}/api/admin/cards/${scriptId}/downloads`, { 
                 method: 'PATCH', // PATCH для частичного обновления
                 headers: {
                     'Content-Type': 'application/json',

@@ -11,7 +11,7 @@ function Card({ card, isFavorite, toggleFavorite, disableFavorite }){
   // console.log(`Card ${ID}: isFavorite = ${isFavorite}, card.ID = ${ID}, favoritedIds (from context) = `, isFavorite ? 'True' : 'False');
   // console.log('Card Component: Полученный пропс `card`:', card);
   // console.log('Card Component: Деструктурированные поля:', { ID, title, description, downloadCount, uploadedAt, imageUrl });
-
+  const API_BASE_URL = process.env.REACT_APP_API_URL;
 
   const handleFavoriteClick = (e) => {
     e.stopPropagation(); 
@@ -44,7 +44,7 @@ function Card({ card, isFavorite, toggleFavorite, disableFavorite }){
             <p className="main__card-description">{description}</p>
           </div>
           <div className="main__card-additional">
-            <Link to={`/card/${ID}`}>
+            <Link to={`${API_BASE_URL}/card/${ID}`}>
                 <button>Download</button>
             </Link>
             <div className="main__card-stat">

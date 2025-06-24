@@ -22,9 +22,9 @@ function LoginPage() {
         if (user && !authContextLoading) { 
             console.log('LoginPage useEffect: Пользователь обнаружен в AuthContext:', user.Username, 'Роль:', user.Role);
             if (user.Role === 'admin') { // Используем user.Role, как ты его сохраняешь
-                navigate('/admin', { replace: true }); // Перенаправляем на /admin/ (базовый маршрут админки)
+                navigate(`${API_BASE_URL}/admin`, { replace: true }); // Перенаправляем на /admin/ (базовый маршрут админки)
             } else {
-                navigate('/', { replace: true });
+                navigate(`${API_BASE_URL}`, { replace: true });
             }
         }
     }, [user, navigate, authContextLoading]); // Добавили authContextLoading в зависимости

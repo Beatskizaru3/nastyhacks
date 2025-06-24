@@ -12,7 +12,7 @@ function CardDetail() {
     const { user, favoritedIds, toggleFavorite, isLoading: authLoading, getToken } = useAuth();
 
     const isFavorite = !authLoading && favoritedIds.includes(id);
-
+    const API_BASE_URL = process.env.REACT_APP_API_URL;
     useEffect(() => {
         const fetchCardDetails = async () => {
             try {
@@ -63,7 +63,7 @@ function CardDetail() {
 
         try {
             console.log(`[CardDetail] Инициирование скачивания для карточки ID: ${id}, путь: ${cardData.filePath}`);
-            const response = await fetch(`/download/cards/${id}`);
+            const response = await fetch(`${API_BASE_URL}/download/cards/${id}`);
 
             if (!response.ok) {
                 console.error(`[CardDetail] Ошибка HTTP при скачивании файла: ${response.status}`);

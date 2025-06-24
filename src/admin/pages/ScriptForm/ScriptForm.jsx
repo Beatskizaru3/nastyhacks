@@ -20,7 +20,7 @@ function ScriptForm() {
     const [availableTags, setAvailableTags] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-
+    const API_BASE_URL = process.env.REACT_APP_API_URL;
     const getAuthToken = () => {
         return localStorage.getItem('token');
     };
@@ -30,7 +30,7 @@ function ScriptForm() {
         const fetchTags = async () => {
             console.log("FRONTEND DEBUG: Загрузка тегов..."); // Лог начала загрузки тегов
             try {
-                const response = await fetch('/tags');
+                const response = await fetch(`${API_BASE_URL}/tags`);
                 if (!response.ok) {
                     throw new Error(`Ошибка загрузки тегов: ${response.statusText}`);
                 }
@@ -59,7 +59,7 @@ function ScriptForm() {
                         return;
                     }
 
-                    const response = await fetch(`/cards/${id}`, {
+                    const response = await fetch(`${API_BASE_URL}/cards/${id}`, {
                         headers: {
                             'Authorization': `Bearer ${token}`
                         }
@@ -73,7 +73,7 @@ function ScriptForm() {
 
                     setTitle(data.Title);
                     setDescription(data.Description);
-                    setImageUrl(data.ImagePath ? `http://localhost:8080${data.ImagePath}` : '');
+                    setImageUrl(data.ImagePath ? `${API_BASE_URL}${data.ImagePath}` : '');
                     setScriptFileName(data.FilePath ? data.FilePath.split('/').pop() : '');
                     setSelectedTag(String(data.TagID));
 
@@ -145,7 +145,7 @@ function ScriptForm() {
             }
 
             const method = isEditMode ? 'PUT' : 'POST';
-            const url = isEditMode ? `/api/admin/cards/${id}` : '/api/admin/cards';
+            const url = isEditMode ? `${API_BASE_URL}/api/admin/cards/${id}` : '${API_BASE_URL}/api/admin/cards';
 
             console.log(`FRONTEND DEBUG: Отправка запроса: Метод: ${method}, URL: ${url}`); // Лог URL и метода
             // Можно вывести содержимое FormData, но это не всегда удобно для файлов.

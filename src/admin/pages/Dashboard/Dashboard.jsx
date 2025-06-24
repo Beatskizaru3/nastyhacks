@@ -25,7 +25,7 @@ function Dashboard() {
   const [timeframe, setTimeframe] = useState('day'); // 'day', 'week', 'month'
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
+  const API_BASE_URL = process.env.REACT_APP_API_URL;
   useEffect(() => {
     const fetchDashboardData = async () => {
       console.log(`[Dashboard DEBUG] fetchDashboardData: Запущен для timeframe: ${timeframe}`);
@@ -46,7 +46,7 @@ function Dashboard() {
         };
 
         // --- Загрузка статистики скачиваний для графика ---
-        const statsUrl = `/api/admin/stats/downloads?timeframe=${timeframe}`;
+        const statsUrl = `${API_BASE_URL}/api/admin/stats/downloads?timeframe=${timeframe}`;
         console.log(`[Dashboard DEBUG] Запрос статистики: ${statsUrl}`);
         const statsResponse = await fetch(statsUrl, { headers });
         
@@ -74,9 +74,9 @@ function Dashboard() {
 
 
         // --- Загрузка топовых файлов ---
-        const top24hUrl = '/api/admin/stats/top-files?period=24h&limit=5';
-        const topWeekUrl = '/api/admin/stats/top-files?period=week&limit=5';
-        const topMonthUrl = '/api/admin/stats/top-files?period=month&limit=5';
+        const top24hUrl = `${API_BASE_URL}/api/admin/stats/top-files?period=24h&limit=5`;
+        const topWeekUrl = `${API_BASE_URL}/api/admin/stats/top-files?period=week&limit=5`;
+        const topMonthUrl = `${API_BASE_URL}/api/admin/stats/top-files?period=month&limit=5`;
 
         console.log(`[Dashboard DEBUG] Запросы топовых файлов: ${top24hUrl}, ${topWeekUrl}, ${topMonthUrl}`);
 
