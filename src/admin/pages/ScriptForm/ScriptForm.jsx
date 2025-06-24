@@ -21,7 +21,7 @@
         const [loading, setLoading] = useState(false);
         const [error, setError] = useState('');
         const API_BASE_URL = process.env.REACT_APP_API_URL;
-        console.log(API_BASE_URL)
+        
         const getAuthToken = () => {
             return localStorage.getItem('token');
         };
@@ -147,6 +147,7 @@
                 }
 
                 const method = isEditMode ? 'PUT' : 'POST';
+                console.log(API_BASE_URL)
                 const url = isEditMode ? `${API_BASE_URL}/api/admin/cards/${id}` : `${API_BASE_URL}/api/admin/cards`;
 
                 console.log(`FRONTEND DEBUG: Отправка запроса: Метод: ${method}, URL: ${url}`); // Лог URL и метода
