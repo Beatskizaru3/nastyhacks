@@ -74,76 +74,72 @@ func saveFile(c *gin.Context, fileKey string, cardID uuid.UUID, subDir string) (
 	return fmt.Sprintf("/uploads/%s/%s", subDir, filename), nil
 }
 
-// IncrementDownloadCountHandler увеличивает счетчик скачиваний для карточки.
-func IncrementDownloadCountHandler(c *gin.Context) {
-	cardIDStr := c.Param("id")
-	log.Printf("DEBUG: IncrementDownloadCountHandler: Получен запрос на скачивание для Card ID: %s", cardIDStr)
+type CardForDownload struct {
+	ID                 uuid.UUID `json:"ID"`
+	FilePath           string    `json:"filePath"` // Путь к файлу скрипта из Cloudinary (полный URL)
+	FakeDownloadsCount int       `json:"fakeDownloadsCount"`
+}
 
-	// --- ИСПРАВЛЕНИЕ: Преобразуем строковый ID в uuid.UUID ---
-	cardID, err := uuid.Parse(cardIDStr) // Используем uuid.Parse для UUID
+func IncrementDownloadCountHandler(c *gin.Context) {
+	cardIDStr := c.Param("id") // Получаем ID карточки из URL
+
+	cardID, err := uuid.Parse(cardIDStr) // Парсим ID в формат UUID
 	if err != nil {
-		log.Printf("ERROR: IncrementDownloadCountHandler: Неверный формат ID карточки (ожидался UUID): %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID карточки. Ожидался UUID."})
+		log.Printf("ERROR: IncrementDownloadCountHandler: Неверный формат ID карточки '%s': %v", cardIDStr, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID карточки."})
 		return
 	}
 
+	// Получаем доступ к уже инициализированному экземпляру базы данных через GetDB().
+	db := database.GetDB()
+	if db == nil {
+		log.Println("ERROR: IncrementDownloadCountHandler: Подключение к базе данных не установлено (db = nil).")
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Внутренняя ошибка сервера: БД недоступна."})
+		return
+	}
+
+	// ИСПРАВЛЕНО: Шаг 1: Получаем текущие данные карточки из базы данных, используя GORM.
+	// Используем полную модель models.Card для удобства GORM.
 	var card models.Card
-	// --- ИСПРАВЛЕНИЕ: GORM должен работать с uuid.UUID напрямую ---
-	result := database.DB.Where("id = ?", cardID).First(&card)
+	result := db.First(&card, "id = ?", cardID) // GORM-метод для поиска по ID
 	if result.Error != nil {
-		if result.Error == gorm.ErrRecordNotFound { // Сравниваем напрямую с ошибкой GORM
-			log.Printf("WARNING: IncrementDownloadCountHandler: Карточка с ID %s не найдена.", cardIDStr)
+		if result.Error == gorm.ErrRecordNotFound {
+			log.Printf("ERROR: IncrementDownloadCountHandler: Карточка с ID %s не найдена в БД.", cardIDStr)
 			c.JSON(http.StatusNotFound, gin.H{"error": "Карточка не найдена."})
 			return
 		}
-		log.Printf("ERROR: IncrementDownloadCountHandler: Ошибка при поиске карточки ID %s: %v", cardIDStr, result.Error)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка базы данных при поиске карточки."})
+		log.Printf("ERROR: IncrementDownloadCountHandler: Ошибка при получении данных карточки для скачивания ID %s: %v", cardIDStr, result.Error)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при получении данных карточки."})
 		return
 	}
 
-	// Увеличиваем счетчики
-	card.DownloadCount++      // Общий счетчик
-	card.RealDownloadsCount++ // Реальный счетчик
-	card.FakeDownloadsCount++ // Фейковый счетчик
-
-	updateResult := database.DB.Save(&card) // Сохраняем обновленную карточку
-	if updateResult.Error != nil {
-		log.Printf("ERROR: IncrementDownloadCountHandler: Ошибка при обновлении счетчиков загрузок для ID %s: %v", cardIDStr, updateResult.Error)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка базы данных при обновлении счетчиков."})
-		return
-	}
-	log.Printf("DEBUG: IncrementDownloadCountHandler: Счетчик загрузок для ID %s увеличен. Новое FakeDownloadsCount: %d, DownloadCount: %d", cardIDStr, card.FakeDownloadsCount, card.DownloadCount)
-
-	// Проверка, есть ли путь к файлу
+	// Проверяем, существует ли FilePath. Если он пуст, значит, файла нет.
 	if card.FilePath == "" {
-		log.Printf("WARNING: IncrementDownloadCountHandler: У карточки ID %s отсутствует путь к файлу.", cardIDStr)
-		c.JSON(http.StatusNotFound, gin.H{"error": "Файл для этой карточки не найден."})
+		log.Printf("ERROR: IncrementDownloadCountHandler: У карточки с ID %s отсутствует путь к файлу (FilePath пуст).", cardIDStr)
+		c.JSON(http.StatusNotFound, gin.H{"error": "Файл для скачивания не найден."})
 		return
 	}
 
-	// Определяем полный путь к файлу на сервере
-	filePathOnServer := fmt.Sprintf(".%s", card.FilePath) // Добавляем "." чтобы сделать путь относительным к текущей директории
-
-	// Проверяем существование файла
-	_, err = os.Stat(filePathOnServer)
-	if os.IsNotExist(err) {
-		log.Printf("ERROR: IncrementDownloadCountHandler: Файл не найден на диске: %s. Ошибка: %v", filePathOnServer, err)
-		c.JSON(http.StatusNotFound, gin.H{"error": "Файл не найден на сервере по указанному пути."})
-		return
-	} else if err != nil {
-		log.Printf("ERROR: IncrementDownloadCountHandler: Ошибка при проверке файла %s: %v", filePathOnServer, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка сервера при доступе к файлу."})
-		return
+	// ИСПРАВЛЕНО: Шаг 2: Увеличиваем счетчик загрузок в базе данных, используя GORM.
+	newDownloadsCount := card.FakeDownloadsCount + 1
+	// Используем Updates для обновления нескольких полей.
+	// db.Model(&card) указывает, какую модель мы хотим обновить.
+	updateResult := db.Model(&card).Updates(map[string]interface{}{
+		"fake_downloads_count": newDownloadsCount,
+		"updated_at":           time.Now().UTC(),
+	})
+	if updateResult.Error != nil {
+		log.Printf("ERROR: IncrementDownloadCountHandler: Ошибка при обновлении счетчика загрузок для карточки %s: %v", cardIDStr, updateResult.Error)
+		// Если обновление счетчика не удалось, мы все равно попытаемся перенаправить пользователя,
+		// чтобы скачивание не прерывалось. Просто логируем ошибку БД.
+	} else {
+		log.Printf("DEBUG: IncrementDownloadCountHandler: Счетчик загрузок для карточки %s успешно увеличен до %d.", cardIDStr, newDownloadsCount)
 	}
 
-	// Отдаем файл
-	fileName := filepath.Base(filePathOnServer) // Извлекаем только имя файла из пути
-	c.Header("Content-Description", "File Transfer")
-	c.Header("Content-Transfer-Encoding", "binary")
-	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", fileName))
-	c.Header("Content-Type", "application/octet-stream") // Или соответствующий MIME-тип
-	c.File(filePathOnServer)
-	log.Printf("DEBUG: IncrementDownloadCountHandler: Файл %s успешно отдан для Card ID: %s", fileName, cardIDStr)
+	// Шаг 3: Перенаправляем пользователя на прямой URL файла в Cloudinary.
+	// Это критический шаг. Браузер клиента получит 302 (Found) и сам запросит файл по этому URL.
+	log.Printf("DEBUG: IncrementDownloadCountHandler: Перенаправление пользователя на URL файла: %s", card.FilePath)
+	c.Redirect(http.StatusFound, card.FilePath) // http.StatusFound (302) - это стандарт для временного перенаправления
 }
 
 // UpdateCardDownloadsHandler обновляет фейковые счетчики скачиваний карточки.

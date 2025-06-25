@@ -13,6 +13,9 @@ import (
 // DB - глобальная переменная, которая будет хранить подключение к базе данных.
 var DB *gorm.DB
 
+func GetDB() *gorm.DB {
+	return DB
+}
 func InitDB() error {
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
