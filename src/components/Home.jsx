@@ -53,17 +53,27 @@ function HomePage({ isCardDetailPage, customLoadButton, customTitle, tagId }) {
       }
       const data = await response.json();
 
-      setCards(prevCards => {
-        if (pageNumber === 1) {
-          return data.cards || [];
-        }
-        const newCards = data.cards;
-        const uniqueNewCards = newCards.filter(
-          newCard => !prevCards.some(existingCard => existingCard.ID === newCard.ID)
-        );
-        return [...prevCards, ...uniqueNewCards];
+    setCards(prevCards => {
+        // --- ИСПРАВЛЕНИЕ: Преобразуем относительные URL изображений в полные ---
+        const transformedCards = (data.cards || []).map(card => {
+            let finalImageUrl = card.imageUrl;
+            // Проверяем, что URL существует и является относительным
+            if (finalImageUrl && !finalImageUrl.startsWith('http://') && !finalImageUrl.startsWith('https://')) {
+                finalImageUrl = `${API_BASE_URL}${finalImageUrl}`;
+            }
+            // (Условие для плейсхолдера удалено, если вы так решили)
+            return { ...card, imageUrl: finalImageUrl };
       });
-      setHasMore(data.cards.length === limit);
+      if (pageNumber === 1) {
+        return transformedCards; // Возвращаем преобразованные карточки
+    }
+    const newCards = transformedCards;
+    const uniqueNewCards = newCards.filter(
+        newCard => !prevCards.some(existingCard => existingCard.ID === newCard.ID)
+    );
+    return [...prevCards, ...uniqueNewCards];
+});
+setHasMore(data.cards.length === limit);
 
     } catch (err) {
       setError('Ошибка при загрузке карточек: ' + err.message);
