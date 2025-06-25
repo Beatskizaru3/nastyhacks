@@ -15,7 +15,7 @@ function ScriptForm() {
     const [description, setDescription] = useState('');
     const [imageFile, setImageFile] = useState(null);
     const [imageUrl, setImageUrl] = useState('');
-
+    
     const [scriptFile, setScriptFile] = useState(null);
     const [scriptFileName, setScriptFileName] = useState('');
 
@@ -23,9 +23,12 @@ function ScriptForm() {
     const [availableTags, setAvailableTags] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    
+    // ИСПРАВЛЕНО: Добавлено состояние для хранения полных данных карточки
+    const [cardData, setCardData] = useState(null); 
 
     const API_BASE_URL = process.env.REACT_APP_API_URL;
-
+    
     const getAuthToken = () => {
         return localStorage.getItem('token');
     };
@@ -82,6 +85,9 @@ function ScriptForm() {
                     setDescription(data.Description);
                     setSelectedTag(String(data.TagID));
 
+                    // ИСПРАВЛЕНО: Теперь сохраняем полные данные в cardData
+                    setCardData(data); 
+
                     // ИСПРАВЛЕНИЕ ЗДЕСЬ: Преобразуем относительный URL изображения в полный
                     // Проверяем, является ли data.ImagePath уже полным URL (http/https)
                     let finalImageUrl = data.ImagePath;
@@ -123,7 +129,7 @@ function ScriptForm() {
             // При загрузке новой карточки, если файл не выбран, imageUrl должен быть пустым.
             if (!isEditMode) {
                 setImageUrl('');
-            } else if (imageUrl !== PLACEHOLDER_IMAGE_URL && imageUrl !== cardData.ImagePath) {
+            } else if (cardData && imageUrl !== PLACEHOLDER_IMAGE_URL && imageUrl !== cardData.ImagePath) { // ИСПРАВЛЕНО: Добавлена проверка cardData
                 // Если пользователь очистил выбранный файл, и это не плейсхолдер,
                 // и не оригинальный путь из БД, то очищаем.
                 // Возможно, здесь нужна кнопка "Очистить текущее изображение"
@@ -168,7 +174,7 @@ function ScriptForm() {
 
         if (imageFile) {
             formData.append('image', imageFile);
-        } else if (isEditMode && imageUrl === PLACEHOLDER_IMAGE_URL && cardData.ImagePath !== "") {
+        } else if (isEditMode && cardData && imageUrl === PLACEHOLDER_IMAGE_URL && cardData.ImagePath !== "") { // ИСПРАВЛЕНО: Добавлена проверка cardData
             // Если в режиме редактирования изображение было удалено (стал плейсхолдер)
             // Изначально было изображение, но теперь его нет (и не был загружен новый файл)
             formData.append('clearImage', 'true');
@@ -178,7 +184,7 @@ function ScriptForm() {
 
         if (scriptFile) {
             formData.append('scriptFile', scriptFile);
-        } else if (isEditMode && scriptFileName === '' && cardData.FilePath !== "") {
+        } else if (isEditMode && cardData && scriptFileName === '' && cardData.FilePath !== "") { // ИСПРАВЛЕНО: Добавлена проверка cardData
              // Если в режиме редактирования файл скрипта был удален (стал пустым)
             // Изначально был файл, но теперь его нет (и не был загружен новый файл)
             formData.append('clearScriptFile', 'true');
@@ -232,7 +238,8 @@ function ScriptForm() {
         }
     };
 
-    if (loading && isEditMode) {
+    // ИСПРАВЛЕНО: Добавлена проверка cardData перед доступом к cardData.ImagePath
+    if (loading && isEditMode && !cardData) { 
         return <div className={styles.loading}>Загрузка данных скрипта...</div>;
     }
 
@@ -278,7 +285,7 @@ function ScriptForm() {
                             <p>Предварительный просмотр:</p>
                             <img src={imageUrl} alt="Предварительный просмотр" />
                             {/* Кнопка "Очистить" изображение */}
-                            {isEditMode && imageFile === null && imageUrl !== PLACEHOLDER_IMAGE_URL && (
+                            {isEditMode && imageFile === null && imageUrl !== PLACEHOLDER_IMAGE_URL && (cardData && cardData.ImagePath !== "") && ( // ИСПРАВЛЕНО: Добавлена проверка cardData
                                 <button
                                     type="button"
                                     onClick={() => {
@@ -307,7 +314,7 @@ function ScriptForm() {
                         <p className={styles.fileNamePreview}>Выбран файл: <strong>{scriptFileName}</strong></p>
                     )}
                      {/* Кнопка "Очистить" файл скрипта */}
-                    {isEditMode && scriptFile === null && scriptFileName !== '' && (
+                    {isEditMode && scriptFile === null && scriptFileName !== '' && (cardData && cardData.FilePath !== "") && ( // ИСПРАВЛЕНО: Добавлена проверка cardData
                         <button
                             type="button"
                             onClick={() => {
