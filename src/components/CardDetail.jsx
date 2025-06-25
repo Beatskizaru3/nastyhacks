@@ -1,3 +1,4 @@
+// src/components/CardDetail.jsx
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import HomePage from "./Home"; // Убедитесь, что это правильный импорт
@@ -12,7 +13,8 @@ function CardDetail() {
     const { user, favoritedIds, toggleFavorite, isLoading: authLoading, getToken } = useAuth();
 
     const isFavorite = !authLoading && favoritedIds.includes(id);
-    const API_BASE_URL = process.env.REACT_APP_API_URL;
+    const API_BASE_URL = process.env.REACT_APP_API_URL; // Получаем базовый URL API
+
     useEffect(() => {
         const fetchCardDetails = async () => {
             try {
@@ -31,14 +33,11 @@ function CardDetail() {
                 }
                 const data = await response.json();
                 console.log(`[CardDetail] Данные карточки получены:`, data);
-
-                // ИСПРАВЛЕНО: Удалена строка, которая добавляла API_BASE_URL к URL Cloudinary.
-                // Теперь data.imageUrl уже содержит полный и корректный URL от бэкенда.
+                
+                // ЭТА СТРОКА БЫЛА УДАЛЕНА. УБЕДИТЕСЬ, ЧТО ЕЕ НЕТ В ВАШЕМ ФАЙЛЕ:
                 // data.imageUrl = `${API_BASE_URL}${data.imageUrl}` 
                 
-                console.log(data);
-                setCardData(data); // <--- Важно: cardData будет содержать актуальное fakeDownloadsCount
-                                    // после первой загрузки страницы.
+                setCardData(data);
             } catch (err) {
                 console.error(`[CardDetail] Ошибка при загрузке данных карточки:`, err);
                 setError('Ошибка при загрузке данных: ' + err.message);
@@ -48,7 +47,7 @@ function CardDetail() {
         };
 
         fetchCardDetails();
-    }, [id]);
+    }, [id, API_BASE_URL]);
 
     const handleFavoriteClick = () => {
         if (authLoading || !user) {
@@ -69,7 +68,6 @@ function CardDetail() {
 
         try {
             console.log(`[CardDetail] Инициирование скачивания для карточки ID: ${id}, путь: ${cardData.filePath}`);
-            // Этот запрос отправляется на ваш бэкенд, который затем должен перенаправить или обслужить файл из Cloudinary.
             const response = await fetch(`${API_BASE_URL}/download/cards/${id}`);
 
             if (!response.ok) {
@@ -85,7 +83,6 @@ function CardDetail() {
             }
 
             const blob = await response.blob();
-            // ... (получение имени файла, создание ссылки, имитация клика)
             let filename = 'downloaded_file';
             const contentDisposition = response.headers.get('Content-Disposition');
             if (contentDisposition) {
@@ -105,14 +102,12 @@ function CardDetail() {
             window.URL.revokeObjectURL(url);
             console.log(`[CardDetail] Файл ${filename} успешно инициирован для скачивания.`);
 
-            // --- ИЗМЕНЕНИЕ: Обновляем и fakeDownloadsCount, и downloadCount ---
             setCardData(prevCardData => ({
                 ...prevCardData,
-                downloadCount: (prevCardData.downloadCount || 0) + 1, // Обновляем общий счетчик
-                fakeDownloadsCount: (prevCardData.fakeDownloadsCount || 0) + 1 // Обновляем фейковый счетчик
+                downloadCount: (prevCardData.downloadCount || 0) + 1,
+                fakeDownloadsCount: (prevCardData.fakeDownloadsCount || 0) + 1
             }));
-            // Важно: cardData в следующем console.log может быть не сразу обновлено
-            // console.log(`[CardDetail] Локально обновлен счетчик загрузок для карточки ID: ${id}. 
+            // console.log(`[CardDetail] Локально обновлен счетчик загрузок для карточки ID: ${id}.
             //              Новое FakeDownloadsCount: ${cardData.fakeDownloadsCount + 1},
             //              Новое DownloadCount: ${cardData.downloadCount + 1}`);
 
@@ -121,6 +116,14 @@ function CardDetail() {
             alert('Произошла непредвиденная ошибка при попытке скачивания: ' + err.message);
         }
     };
+
+    // ИСПРАВЛЕНО: Этот useEffect блок, который автоматически вызывал handleDownload(), удален.
+    // handleDownload() теперь будет вызываться только по клику на кнопку.
+    /*
+    useEffect(() => {
+        handleDownload(); 
+    }, [id, cardData, API_BASE_URL]);
+    */
 
     if (loading) {
         return <div className="cardInfo container">Загрузка информации о карточке...</div>;
@@ -139,7 +142,7 @@ function CardDetail() {
         title,
         description,
         uploadedAt,
-        imageUrl, // Теперь это уже полный URL Cloudinary
+        imageUrl,
         fakeDownloadsCount,
         tag
     } = cardData;
@@ -155,7 +158,6 @@ function CardDetail() {
         <>
             <div className="cardInfo container">
                 <div className="cardInfo__image">
-                    {console.log("Отображаемый URL изображения:", imageUrl)}
                     <img src={imageUrl} alt={title || "Изображение карточки"} />
                 </div>
                 <div className="cardInfo__body">
