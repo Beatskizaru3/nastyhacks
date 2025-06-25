@@ -99,6 +99,17 @@ function HomePage({ isCardDetailPage, customLoadButton, customTitle, tagId }) {
     }
   };
 
+  // ИСПРАВЛЕНИЕ: Добавлена функция handleSortChange
+  const handleSortChange = (newSortBy) => {
+    setSortBy(newSortBy);
+    setIsFilterOpen(false); // Закрываем фильтр после выбора
+    setCards([]); // Очищаем карточки, чтобы начать новую загрузку с 1 страницы
+    setPage(1);
+    setHasMore(true);
+    // fetchCardsData будет вызван через useEffect, когда sortBy изменится
+  };
+
+
   const toggleFilter = () => {
     setIsFilterOpen(prev => !prev);
   };
