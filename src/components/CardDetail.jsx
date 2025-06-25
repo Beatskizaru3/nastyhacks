@@ -150,6 +150,7 @@ function CardDetail() {
         <>
             <div className="cardInfo container">
                 <div className="cardInfo__image">
+                {console.log(imageUrl)}
                     <img src={imageUrl} alt={title || "Изображение карточки"} />
                 </div>
                 <div className="cardInfo__body">
