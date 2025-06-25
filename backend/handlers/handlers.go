@@ -1,21 +1,26 @@
 package handlers
 
 import (
+	"context" // Required for Cloudinary operations
 	"fmt"
-	"log"
+	"log" // To handle file uploads
 	"net/http"
 	"os"
-	"path/filepath"
-	"strconv"
+	"path/filepath" // To extract file extension
+	"strconv"       // For string to uint conversion
 	"time"
 
+	"nasty/database"
+	"nasty/imgStorage" // Ваш локальный пакет imgStorage
+	"nasty/models"
+	"nasty/utils"
+
+	"github.com/cloudinary/cloudinary-go/v2/api"
+	"github.com/cloudinary/cloudinary-go/v2/api/uploader" // ИСПРАВЛЕНО: ТОЧНЫЙ ПУТЬ С /v2
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
-
-	"nasty/database"
-	"nasty/models"
-	"nasty/utils"
+	// "github.com/cloudinary/cloudinary-go/v2/api/admin" // Этот импорт не нужен, если используется только uploader.DestroyParams
 )
 
 // deleteOldFile удаляет файл по указанному публичному пути.
@@ -181,20 +186,17 @@ func UpdateCardDownloadsHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Счетчик фейковых скачиваний обновлен", "newFakeDownloadsCount": card.FakeDownloadsCount})
 }
 
-// CreateCardHandler создает новую карточку с загрузкой изображения и скрипта.
 func CreateCardHandler(c *gin.Context) {
-	log.Println("DEBUG: CreateCardHandler: Начат обработка запроса POST /admin/cards")
+	log.Println("DEBUG: CreateCardHandler: Начата обработка запроса POST /admin/cards")
 
-	var newCard models.Card // Используем models.Card напрямую
+	var newCard models.Card
 
-	// 1. Получение полей из формы
 	newCard.Title = c.PostForm("title")
 	log.Printf("DEBUG: CreateCardHandler: Получен Title: %s", newCard.Title)
 
 	newCard.Description = c.PostForm("description")
 	log.Printf("DEBUG: CreateCardHandler: Получен Description: %s", newCard.Description)
 
-	// 2. Обработка TagID
 	tagIDStr := c.PostForm("tagId")
 	log.Printf("DEBUG: CreateCardHandler: Получен TagID (строка): %s", tagIDStr)
 	if tagIDStr == "" {
@@ -211,21 +213,19 @@ func CreateCardHandler(c *gin.Context) {
 	newCard.TagID = uint(parsedTagID)
 	log.Printf("DEBUG: CreateCardHandler: Parsed TagID (uint): %d", newCard.TagID)
 
-	// 3. Проверка обязательных полей
 	if newCard.Title == "" || newCard.Description == "" {
 		log.Println("ERROR: CreateCardHandler: Название или описание отсутствуют.")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Название и описание являются обязательными."})
 		return
 	}
 
-	// 4. Получение UploaderID из контекста
 	userIDAny, exists := c.Get("userID")
 	if !exists {
 		log.Println("ERROR: CreateCardHandler: Uploader ID не найден в контексте. Middleware 'AuthMiddleware' не установил 'userID'.")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Пользователь не авторизован или ID не найден."})
 		return
 	}
-	uploaderIDStr, ok := userIDAny.(string) // Убедитесь, что userID в контексте - это строка
+	uploaderIDStr, ok := userIDAny.(string)
 	if !ok {
 		log.Printf("ERROR: CreateCardHandler: Неожиданный тип для userID в контексте: %T", userIDAny)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка получения Uploader ID из контекста."})
@@ -233,68 +233,157 @@ func CreateCardHandler(c *gin.Context) {
 	}
 	log.Printf("DEBUG: CreateCardHandler: Получен Uploader ID (строка) из контекста: %s", uploaderIDStr)
 
-	// >>> ИСПРАВЛЕНИЕ #1: Сопоставляем тип UploaderID в модели Card
-	// Если models.Card.UploaderID имеет тип uint, то парсим строку в uint.
-	// Если models.Card.UploaderID имеет тип uuid.UUID, то парсим строку в uuid.UUID.
-	// Судя по ошибке "cannot use uploaderID (variable of type uuid.UUID) as uint value in assignment",
-	// models.Card.UploaderID - это uint.
 	parsedUploaderID, err := strconv.ParseUint(uploaderIDStr, 10, 64)
 	if err != nil {
 		log.Printf("ERROR: CreateCardHandler: Ошибка парсинга Uploader ID '%s' в uint: %v", uploaderIDStr, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка парсинга ID загрузчика."})
 		return
 	}
-	newCard.UploaderID = uint(parsedUploaderID) // Устанавливаем UploaderID как uint
-	// <<< КОНЕЦ ИСПРАВЛЕНИЯ #1
+	newCard.UploaderID = uint(parsedUploaderID)
 
-	// 5. Генерация UUID для Card ID
 	newCard.ID = uuid.New()
 	log.Printf("DEBUG: CreateCardHandler: Сгенерирован новый Card ID: %s", newCard.ID.String())
 
-	// 6. Сохранение файла изображения
-	log.Println("DEBUG: CreateCardHandler: Попытка сохранить файл изображения.")
-	imgPath, err := saveFile(c, "image", newCard.ID, "images")
-	if err != nil {
-		log.Printf("ERROR: CreateCardHandler: Ошибка при сохранении изображения: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при сохранении изображения: " + err.Error()})
+	// ОБРАБОТКА ФАЙЛА ИЗОБРАЖЕНИЯ (ЗАГРУЗКА В CLOUDINARY)
+	log.Println("DEBUG: CreateCardHandler: Попытка загрузить файл изображения в Cloudinary.")
+	imageFileHeader, err := c.FormFile("image")
+	if err != nil && err != http.ErrMissingFile {
+		log.Printf("ERROR: CreateCardHandler: Ошибка при получении файла изображения: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Ошибка при получении файла изображения: %v", err)})
 		return
 	}
-	newCard.ImagePath = imgPath
-	log.Printf("DEBUG: CreateCardHandler: Изображение сохранено по пути: %s", newCard.ImagePath)
 
-	// 7. Сохранение файла скрипта
-	log.Println("DEBUG: CreateCardHandler: Попытка сохранить файл скрипта.")
-	filePath, err := saveFile(c, "scriptFile", newCard.ID, "scripts")
+	if imageFileHeader != nil {
+		imageFile, openErr := imageFileHeader.Open()
+		if openErr != nil {
+			log.Printf("ERROR: CreateCardHandler: Ошибка при открытии файла изображения: %v", openErr)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Ошибка при открытии файла изображения: %v", openErr)})
+			return
+		}
+		defer imageFile.Close()
+
+		ctx, cancel := context.WithTimeout(c.Request.Context(), 15*time.Second)
+		defer cancel()
+
+		imagePublicID := fmt.Sprintf("nastyhacks_images/%s", newCard.ID.String())
+		uploadResult, uploadErr := imgStorage.Cld.Upload.Upload(ctx, imageFile, uploader.UploadParams{
+			PublicID: imagePublicID,
+			Folder:   "nastyhacks_images",
+		})
+		if uploadErr != nil {
+			log.Printf("ERROR: CreateCardHandler: Ошибка при загрузке изображения в Cloudinary: %v", uploadErr)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Ошибка при загрузке изображения: %v", uploadErr)})
+			return
+		}
+		newCard.ImagePath = uploadResult.SecureURL
+		log.Printf("DEBUG: CreateCardHandler: Изображение загружено в Cloudinary: %s", newCard.ImagePath)
+	} else {
+		newCard.ImagePath = ""
+		log.Println("DEBUG: CreateCardHandler: Файл изображения не предоставлен.")
+	}
+
+	// ОБРАБОТКА ФАЙЛА СКРИПТА (ЗАГРУЗКА В CLOUDINARY)
+	log.Println("DEBUG: CreateCardHandler: Попытка загрузить файл скрипта в Cloudinary.")
+	scriptFileHeader, err := c.FormFile("scriptFile")
 	if err != nil {
-		log.Printf("ERROR: CreateCardHandler: Ошибка при сохранении файла скрипта: %v", err)
-		// Если скрипт не сохранился, удаляем сохраненное изображение, если оно есть
-		deleteOldFile(newCard.ImagePath)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при сохранении файла скрипта: " + err.Error()})
+		log.Printf("ERROR: CreateCardHandler: Файл скрипта не предоставлен или ошибка получения: %v", err)
+		if newCard.ImagePath != "" {
+			ctxDestroy, cancelDestroy := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancelDestroy()
+			if _, destroyErr := imgStorage.Cld.Upload.Destroy(ctxDestroy, uploader.DestroyParams{
+				PublicID:     fmt.Sprintf("nastyhacks_images/%s", newCard.ID.String()),
+				ResourceType: "image",
+			}); destroyErr != nil {
+				log.Printf("ERROR: Failed to destroy image %s after script upload failure: %v", newCard.ImagePath, destroyErr)
+			}
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Файл скрипта является обязательным."})
 		return
 	}
-	newCard.FilePath = filePath
-	log.Printf("DEBUG: CreateCardHandler: Файл скрипта сохранен по пути: %s", newCard.FilePath)
 
-	// Инициализация счетчиков и времени загрузки
+	scriptFile, openErr := scriptFileHeader.Open()
+	if openErr != nil {
+		log.Printf("ERROR: CreateCardHandler: Ошибка при открытии файла скрипта: %v", openErr)
+		if newCard.ImagePath != "" {
+			ctxDestroy, cancelDestroy := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancelDestroy()
+			if _, destroyErr := imgStorage.Cld.Upload.Destroy(ctxDestroy, uploader.DestroyParams{
+				PublicID:     fmt.Sprintf("nastyhacks_images/%s", newCard.ID.String()),
+				ResourceType: "image",
+			}); destroyErr != nil {
+				log.Printf("ERROR: Failed to destroy image %s after script open failure: %v", newCard.ImagePath, destroyErr)
+			}
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Ошибка при открытии файла скрипта: %v", openErr)})
+		return
+	}
+	defer scriptFile.Close()
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 15*time.Second)
+	defer cancel()
+
+	scriptPublicID := fmt.Sprintf("nastyhacks_scripts/%s%s", newCard.ID.String(), filepath.Ext(scriptFileHeader.Filename))
+	uploadResult, uploadErr := imgStorage.Cld.Upload.Upload(ctx, scriptFile, uploader.UploadParams{
+		PublicID:     scriptPublicID,
+		Folder:       "nastyhacks_scripts",
+		ResourceType: "raw",
+	})
+	if uploadErr != nil {
+		log.Printf("ERROR: CreateCardHandler: Ошибка при загрузке файла скрипта в Cloudinary: %v", uploadErr)
+		if newCard.ImagePath != "" {
+			ctxDestroy, cancelDestroy := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancelDestroy()
+			if _, destroyErr := imgStorage.Cld.Upload.Destroy(ctxDestroy, uploader.DestroyParams{
+				PublicID:     fmt.Sprintf("nastyhacks_images/%s", newCard.ID.String()),
+				ResourceType: "image",
+			}); destroyErr != nil {
+				log.Printf("ERROR: Failed to destroy image %s after script upload failure: %v", newCard.ImagePath, destroyErr)
+			}
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Ошибка при загрузке файла скрипта: %v", uploadErr)})
+		return
+	}
+	newCard.FilePath = uploadResult.SecureURL
+	log.Printf("DEBUG: CreateCardHandler: Файл скрипта загружен в Cloudinary: %s", newCard.FilePath)
+
 	newCard.UploadedAt = time.Now()
 	newCard.DownloadCount = 0
 	newCard.RealDownloadsCount = 0
 	newCard.FakeDownloadsCount = 0
 
-	// 8. Добавление карточки в базу данных
 	log.Println("DEBUG: CreateCardHandler: Попытка добавить карточку в БД.")
-	err = database.AddToDb(&newCard) // Используем database.AddToDb
+	err = database.AddToDb(&newCard)
 	if err != nil {
 		log.Printf("ERROR: CreateCardHandler: Ошибка при добавлении карточки в БД: %v", err)
-		// Удаляем сохраненные файлы, если возникла ошибка БД
-		deleteOldFile(newCard.ImagePath)
-		deleteOldFile(newCard.FilePath)
+		ctxDestroy, cancelDestroy := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancelDestroy()
+
+		// Удаление изображения
+		if newCard.ImagePath != "" {
+			if _, destroyErr := imgStorage.Cld.Upload.Destroy(ctxDestroy, uploader.DestroyParams{
+				PublicID:     fmt.Sprintf("nastyhacks_images/%s", newCard.ID.String()),
+				ResourceType: "image",
+			}); destroyErr != nil {
+				log.Printf("ERROR: Failed to destroy image %s after DB error: %v", newCard.ImagePath, destroyErr)
+			}
+		}
+		// Удаление скрипта
+		if newCard.FilePath != "" {
+			scriptPublicIDToDestroy := fmt.Sprintf("nastyhacks_scripts/%s%s", newCard.ID.String(), filepath.Ext(newCard.FilePath))
+			if _, destroyErr := imgStorage.Cld.Upload.Destroy(ctxDestroy, uploader.DestroyParams{
+				PublicID:     scriptPublicIDToDestroy,
+				ResourceType: "raw",
+			}); destroyErr != nil {
+				log.Printf("ERROR: Failed to destroy script %s after DB error: %v", newCard.FilePath, destroyErr)
+			}
+		}
+
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при создании карточки в базе данных: " + err.Error()})
 		return
 	}
 	log.Println("DEBUG: CreateCardHandler: Карточка успешно добавлена в БД.")
 
-	// 9. Успешный ответ
+	// Успешный ответ
 	c.JSON(http.StatusCreated, gin.H{
 		"message":  "Карточка успешно создана",
 		"id":       newCard.ID.String(),
@@ -593,9 +682,11 @@ func GetAllCardsHandler(c *gin.Context) {
 
 // UpdateCardHandler обрабатывает обновление существующей карточки с возможностью изменения изображений и файлов.
 func UpdateCardHandler(c *gin.Context) {
+	log.Println("DEBUG: UpdateCardHandler: Начат обработка запроса PUT/PATCH /admin/cards/:id")
 	cardIDStr := c.Param("id")
 	cardID, err := uuid.Parse(cardIDStr)
 	if err != nil {
+		log.Printf("ERROR: UpdateCardHandler: Неверный формат ID карточки '%s': %v", cardIDStr, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID карточки."})
 		return
 	}
@@ -604,9 +695,11 @@ func UpdateCardHandler(c *gin.Context) {
 	existingCard, err := database.GetCardByIDfunc(cardID)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
+			log.Printf("ERROR: UpdateCardHandler: Карточка с ID %s не найдена.", cardID.String())
 			c.JSON(http.StatusNotFound, gin.H{"error": "Карточка не найдена для обновления."})
 			return
 		}
+		log.Printf("ERROR: UpdateCardHandler: Ошибка получения существующей карточки ID %s: %v", cardID.String(), err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка получения существующей карточки: " + err.Error()})
 		return
 	}
@@ -614,54 +707,171 @@ func UpdateCardHandler(c *gin.Context) {
 	// Обновляем поля напрямую через указатель existingCard
 	if title := c.PostForm("title"); title != "" {
 		existingCard.Title = title
+		log.Printf("DEBUG: UpdateCardHandler: Обновлен Title на: %s", title)
 	}
 	if desc := c.PostForm("description"); desc != "" {
 		existingCard.Description = desc
+		log.Printf("DEBUG: UpdateCardHandler: Обновлен Description на: %s", desc)
 	}
 	if tagIDStr := c.PostForm("tagId"); tagIDStr != "" {
 		if parsedTagID, err := strconv.ParseUint(tagIDStr, 10, 64); err == nil {
 			existingCard.TagID = uint(parsedTagID)
+			log.Printf("DEBUG: UpdateCardHandler: Обновлен TagID на: %d", existingCard.TagID)
 		} else {
+			log.Printf("ERROR: UpdateCardHandler: Неверный формат ID тега '%s': %v", tagIDStr, err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Неверный формат ID тега."})
 			return
 		}
 	}
 
-	// Обработка файла изображения
-	newImgPath, err := saveFile(c, "image", cardID, "images")
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при загрузке изображения: " + err.Error()})
+	// Обработка файла изображения (ЗАГРУЗКА В CLOUDINARY)
+	log.Println("DEBUG: UpdateCardHandler: Попытка обработать файл изображения.")
+	imageFileHeader, err := c.FormFile("image")
+	if err != nil && err != http.ErrMissingFile {
+		log.Printf("ERROR: UpdateCardHandler: Ошибка при получении файла изображения: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Ошибка при получении файла изображения: %v", err)})
 		return
 	}
-	if newImgPath != "" { // Если новый файл загружен
-		deleteOldFile(existingCard.ImagePath)
-		existingCard.ImagePath = newImgPath
+
+	if imageFileHeader != nil {
+		log.Println("DEBUG: UpdateCardHandler: Обнаружен новый файл изображения. Загружаем в Cloudinary.")
+		imageFile, openErr := imageFileHeader.Open()
+		if openErr != nil {
+			log.Printf("ERROR: UpdateCardHandler: Ошибка при открытии нового файла изображения: %v", openErr)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Ошибка при открытии файла изображения: %v", openErr)})
+			return
+		}
+		defer imageFile.Close()
+
+		ctx, cancel := context.WithTimeout(c.Request.Context(), 15*time.Second)
+		defer cancel()
+
+		// Public ID будет таким же, чтобы перезаписать старое изображение
+		imagePublicID := fmt.Sprintf("nastyhacks_images/%s", existingCard.ID.String())
+
+		// Удаляем старое изображение перед загрузкой нового, если оно существовало
+		if existingCard.ImagePath != "" {
+			log.Printf("DEBUG: UpdateCardHandler: Удаляем старое изображение из Cloudinary: %s", existingCard.ImagePath)
+			ctxDestroy, cancelDestroy := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancelDestroy()
+			if _, destroyErr := imgStorage.Cld.Upload.Destroy(ctxDestroy, uploader.DestroyParams{
+				PublicID:     fmt.Sprintf("nastyhacks_images/%s", existingCard.ID.String()),
+				ResourceType: "image",
+			}); destroyErr != nil {
+				log.Printf("ERROR: Failed to destroy old image %s: %v", existingCard.ImagePath, destroyErr)
+				// Не возвращаем ошибку, продолжаем, так как новое изображение может быть загружено
+			}
+		}
+
+		uploadResult, uploadErr := imgStorage.Cld.Upload.Upload(ctx, imageFile, uploader.UploadParams{
+			PublicID:  imagePublicID,
+			Folder:    "nastyhacks_images",
+			Overwrite: api.Bool(true), // ИСПРАВЛЕНО: Используем api.Bool(true)
+		})
+		if uploadErr != nil {
+			log.Printf("ERROR: UpdateCardHandler: Ошибка при загрузке нового изображения в Cloudinary: %v", uploadErr)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Ошибка при загрузке изображения: %v", uploadErr)})
+			return
+		}
+		existingCard.ImagePath = uploadResult.SecureURL
+		log.Printf("DEBUG: UpdateCardHandler: Изображение обновлено в Cloudinary: %s", existingCard.ImagePath)
 	} else if c.PostForm("clearImage") == "true" { // Если запрошено удаление существующего
-		deleteOldFile(existingCard.ImagePath)
+		log.Println("DEBUG: UpdateCardHandler: Запрос на удаление изображения.")
+		if existingCard.ImagePath != "" {
+			ctxDestroy, cancelDestroy := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancelDestroy()
+			if _, destroyErr := imgStorage.Cld.Upload.Destroy(ctxDestroy, uploader.DestroyParams{
+				PublicID:     fmt.Sprintf("nastyhacks_images/%s", existingCard.ID.String()),
+				ResourceType: "image",
+			}); destroyErr != nil {
+				log.Printf("ERROR: Failed to destroy image %s: %v", existingCard.ImagePath, destroyErr)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при удалении изображения."})
+				return
+			}
+		}
 		existingCard.ImagePath = ""
+		log.Println("DEBUG: UpdateCardHandler: Изображение удалено и путь очищен.")
 	}
 
-	// Обработка файла скрипта
-	newScriptPath, err := saveFile(c, "scriptFile", cardID, "scripts")
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при загрузке скрипта: " + err.Error()})
+	// Обработка файла скрипта (ЗАГРУЗКА В CLOUDINARY)
+	log.Println("DEBUG: UpdateCardHandler: Попытка обработать файл скрипта.")
+	scriptFileHeader, err := c.FormFile("scriptFile")
+	if err != nil && err != http.ErrMissingFile {
+		log.Printf("ERROR: UpdateCardHandler: Ошибка при получении файла скрипта: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Ошибка при получении файла скрипта: %v", err)})
 		return
 	}
-	if newScriptPath != "" { // Если новый файл загружен
-		deleteOldFile(existingCard.FilePath) // Удаляем старый файл
-		existingCard.FilePath = newScriptPath
+
+	if scriptFileHeader != nil {
+		log.Println("DEBUG: UpdateCardHandler: Обнаружен новый файл скрипта. Загружаем в Cloudinary.")
+		scriptFile, openErr := scriptFileHeader.Open()
+		if openErr != nil {
+			log.Printf("ERROR: UpdateCardHandler: Ошибка при открытии нового файла скрипта: %v", openErr)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Ошибка при открытии файла скрипта: %v", openErr)})
+			return
+		}
+		defer scriptFile.Close()
+
+		ctx, cancel := context.WithTimeout(c.Request.Context(), 15*time.Second)
+		defer cancel()
+
+		// Public ID для скрипта будет таким же, чтобы перезаписать старый скрипт
+		scriptPublicID := fmt.Sprintf("nastyhacks_scripts/%s%s", existingCard.ID.String(), filepath.Ext(scriptFileHeader.Filename))
+
+		// Удаляем старый скрипт перед загрузкой нового, если он существовал
+		if existingCard.FilePath != "" {
+			log.Printf("DEBUG: UpdateCardHandler: Удаляем старый файл скрипта из Cloudinary: %s", existingCard.FilePath)
+			ctxDestroy, cancelDestroy := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancelDestroy()
+			if _, destroyErr := imgStorage.Cld.Upload.Destroy(ctxDestroy, uploader.DestroyParams{
+				PublicID:     fmt.Sprintf("nastyhacks_scripts/%s%s", existingCard.ID.String(), filepath.Ext(existingCard.FilePath)),
+				ResourceType: "raw",
+			}); destroyErr != nil {
+				log.Printf("ERROR: Failed to destroy old script %s: %v", existingCard.FilePath, destroyErr)
+				// Не возвращаем ошибку, продолжаем
+			}
+		}
+
+		uploadResult, uploadErr := imgStorage.Cld.Upload.Upload(ctx, scriptFile, uploader.UploadParams{
+			PublicID:     scriptPublicID,
+			Folder:       "nastyhacks_scripts",
+			ResourceType: "raw",          // Указываем как "raw" файл
+			Overwrite:    api.Bool(true), // ИСПРАВЛЕНО: Используем api.Bool(true)
+		})
+		if uploadErr != nil {
+			log.Printf("ERROR: UpdateCardHandler: Ошибка при загрузке нового файла скрипта в Cloudinary: %v", uploadErr)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Ошибка при загрузке файла скрипта: %v", uploadErr)})
+			return
+		}
+		existingCard.FilePath = uploadResult.SecureURL
+		log.Printf("DEBUG: UpdateCardHandler: Файл скрипта обновлен в Cloudinary: %s", existingCard.FilePath)
 	} else if c.PostForm("clearScriptFile") == "true" { // Если запрошено удаление существующего
-		deleteOldFile(existingCard.FilePath)
+		log.Println("DEBUG: UpdateCardHandler: Запрос на удаление файла скрипта.")
+		if existingCard.FilePath != "" {
+			ctxDestroy, cancelDestroy := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancelDestroy()
+			if _, destroyErr := imgStorage.Cld.Upload.Destroy(ctxDestroy, uploader.DestroyParams{
+				PublicID:     fmt.Sprintf("nastyhacks_scripts/%s%s", existingCard.ID.String(), filepath.Ext(existingCard.FilePath)),
+				ResourceType: "raw",
+			}); destroyErr != nil {
+				log.Printf("ERROR: Failed to destroy script %s: %v", existingCard.FilePath, destroyErr)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при удалении файла скрипта."})
+				return
+			}
+		}
 		existingCard.FilePath = ""
+		log.Println("DEBUG: UpdateCardHandler: Файл скрипта удален и путь очищен.")
 	}
 
-	// Обновляем карточку в базе данных
+	existingCard.UpdatedAt = time.Now()
 	err = database.UpdateInDb(cardID, existingCard)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
+			log.Printf("ERROR: UpdateCardHandler: Карточка с ID %s не найдена в БД для обновления.", cardID.String())
 			c.JSON(http.StatusNotFound, gin.H{"error": "Карточка не найдена для обновления."})
 			return
 		}
+		log.Printf("ERROR: UpdateCardHandler: Ошибка при обновлении карточки ID %s в БД: %v", cardID.String(), err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Ошибка при обновлении карточки в базе данных: " + err.Error()})
 		return
 	}
@@ -671,6 +881,7 @@ func UpdateCardHandler(c *gin.Context) {
 		"imageUrl": existingCard.ImagePath,
 		"filePath": existingCard.FilePath,
 	})
+	log.Println("DEBUG: UpdateCardHandler: Запрос PUT/PATCH /admin/cards/:id успешно завершен.")
 }
 
 // DeleteCardHandler удаляет карточку и связанные с ней файлы.

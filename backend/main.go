@@ -8,6 +8,7 @@ import (
 
 	"nasty/database"
 	"nasty/handlers"
+	"nasty/imgStorage"
 	"nasty/middleware"
 	"nasty/utils"
 
@@ -38,6 +39,7 @@ func init() {
 	handlers.SetJWTSecret([]byte(secret))
 	log.Println("DEBUG INIT: JWT Secret установлен в utils, middleware, handlers.")
 
+	imgStorage.InitCloudinary()
 	log.Println("--- DEBUG INIT: Завершение функции init ---")
 }
 
