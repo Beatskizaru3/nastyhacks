@@ -31,7 +31,7 @@ function CardDetail() {
                 }
                 const data = await response.json();
                 console.log(`[CardDetail] Данные карточки получены:`, data);
-                
+                data.imageUrl = `${API_BASE_URL}${data.imageUrl}`
                 setCardData(data); // <--- Важно: cardData будет содержать актуальное fakeDownloadsCount
                                     // после первой загрузки страницы.
             } catch (err) {
