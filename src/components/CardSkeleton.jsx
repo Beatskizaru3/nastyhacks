@@ -3,7 +3,7 @@ import React from 'react';
 // Предполагаем, что общие стили, включая переменные $color-accent, $color-card, $shadow,
 // определены и доступны, например, через main.scss
 import '../styles/main.scss'; 
-import '../styles/CardSkeleton.scss'; // Создадим отдельный файл стилей для скелета
+import '../styles/cardSkeleton.scss'; // Создадим отдельный файл стилей для скелета
 
 function CardSkeleton() {
     return (

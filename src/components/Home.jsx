@@ -6,7 +6,7 @@ import { useClickOutside } from '../hooks/useClickOutside';
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from '../context/AuthContext';
 import '../styles/main.scss';
-import '../styles/CardSkeleton.scss';
+import '../styles/cardSkeleton.scss';
 
 const CARDS_PER_LOAD = 9;
 const PLACEHOLDER_IMAGE_URL = 'https://placehold.co/150x150/cccccc/333333?text=No Image'; // Стандартизированный плейсхолдер
